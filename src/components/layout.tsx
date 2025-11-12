@@ -12,7 +12,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <Link to="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors">
+            <Link
+              to="/"
+              className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
+            >
               🇩🇪 EgalDeutsch
             </Link>
             <nav className="flex space-x-6">
@@ -42,7 +45,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               Learn German through engaging stories and interactive quizzes
             </p>
             <p className="text-gray-500 text-xs">
-              © {new Date().getFullYear()} EgalDeutsch. Practice makes perfect! 🚀
+              © {new Date().getFullYear()} EgalDeutsch. Practice makes perfect!
+              🚀
             </p>
           </div>
         </div>

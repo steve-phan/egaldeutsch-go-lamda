@@ -16,7 +16,7 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
   showResult = false,
   onAnswerSelect,
   questionNumber,
-  totalQuestions
+  totalQuestions,
 }) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -24,27 +24,32 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
         <span className="text-sm text-gray-500">
           Question {questionNumber} of {totalQuestions}
         </span>
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          question.questionType === 'comprehension' ? 'bg-blue-100 text-blue-800' :
-          question.questionType === 'vocabulary' ? 'bg-green-100 text-green-800' :
-          'bg-purple-100 text-purple-800'
-        }`}>
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            question.questionType === "comprehension"
+              ? "bg-blue-100 text-blue-800"
+              : question.questionType === "vocabulary"
+              ? "bg-green-100 text-green-800"
+              : "bg-purple-100 text-purple-800"
+          }`}
+        >
           {question.questionType}
         </span>
       </div>
-      
+
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         {question.question}
       </h3>
-      
+
       <div className="space-y-3">
         {question.options.map((option, index) => {
           const isSelected = selectedAnswer === index;
           const isCorrect = question.correctAnswer === index;
           const isIncorrect = showResult && isSelected && !isCorrect;
-          
-          let buttonClass = "w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ";
-          
+
+          let buttonClass =
+            "w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ";
+
           if (showResult) {
             if (isCorrect) {
               buttonClass += "border-green-500 bg-green-50 text-green-900";
@@ -57,10 +62,11 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
             if (isSelected) {
               buttonClass += "border-blue-500 bg-blue-50 text-blue-900";
             } else {
-              buttonClass += "border-gray-200 hover:border-gray-300 hover:bg-gray-50";
+              buttonClass +=
+                "border-gray-200 hover:border-gray-300 hover:bg-gray-50";
             }
           }
-          
+
           return (
             <button
               key={index}
@@ -84,18 +90,18 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
           );
         })}
       </div>
-      
+
       {showResult && question.explanation && (
         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">Explanation:</h4>
+          <h4 className="text-sm font-medium text-blue-900 mb-2">
+            Explanation:
+          </h4>
           <p className="text-sm text-blue-800">{question.explanation}</p>
         </div>
       )}
-      
+
       <div className="mt-4 text-right">
-        <span className="text-sm text-gray-500">
-          Points: {question.points}
-        </span>
+        <span className="text-sm text-gray-500">Points: {question.points}</span>
       </div>
     </div>
   );
@@ -110,7 +116,7 @@ interface QuizResultsProps {
 const QuizResults: React.FC<QuizResultsProps> = ({
   result,
   onRetakeQuiz,
-  onReturnToStory
+  onReturnToStory,
 }) => {
   const getScoreColor = (percentage: number) => {
     if (percentage >= 90) return "text-green-600";
@@ -130,7 +136,11 @@ const QuizResults: React.FC<QuizResultsProps> = ({
     <div className="bg-white rounded-lg shadow-md p-8 text-center">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Results</h2>
-        <div className={`text-4xl font-bold mb-2 ${getScoreColor(result.percentage)}`}>
+        <div
+          className={`text-4xl font-bold mb-2 ${getScoreColor(
+            result.percentage
+          )}`}
+        >
           {result.percentage}%
         </div>
         <p className="text-lg text-gray-600">
@@ -140,7 +150,7 @@ const QuizResults: React.FC<QuizResultsProps> = ({
           {getScoreMessage(result.percentage)}
         </p>
       </div>
-      
+
       {result.passed ? (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-center text-green-600 mb-2">
@@ -148,7 +158,8 @@ const QuizResults: React.FC<QuizResultsProps> = ({
             <span className="font-semibold">Congratulations!</span>
           </div>
           <p className="text-green-800 text-sm">
-            You passed the quiz! You now have a better understanding of this German story.
+            You passed the quiz! You now have a better understanding of this
+            German story.
           </p>
         </div>
       ) : (
@@ -158,11 +169,12 @@ const QuizResults: React.FC<QuizResultsProps> = ({
             <span className="font-semibold">Keep Learning!</span>
           </div>
           <p className="text-yellow-800 text-sm">
-            Don't worry! Read the story again and try the quiz once more to improve your understanding.
+            Don't worry! Read the story again and try the quiz once more to
+            improve your understanding.
           </p>
         </div>
       )}
-      
+
       <div className="flex space-x-4 justify-center">
         <button
           onClick={onReturnToStory}

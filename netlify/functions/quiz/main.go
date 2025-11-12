@@ -111,7 +111,7 @@ func getQuiz(ctx context.Context, storyID string, headers map[string]string) (ev
 	}
 
 	// Get questions for this story, ordered by order field
-	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": id}, )
+	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": id})
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -172,22 +172,29 @@ func getQuiz(ctx context.Context, storyID string, headers map[string]string) (ev
 	}, nil
 }
 
-func submitQuiz(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func submitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+	id, err := primitive.ObjectIDFromHex(storyID)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Invalid story ID format"}`,
+		}, nil
+	}
 	var submissionRequest struct {
-		StoryID primitive.ObjectID `json:"storyId"`
-		Answers []int              `json:"answers"`
+		Answers []int `json:"answers"`
 	}
 
 	if err := json.Unmarshal([]byte(req.Body), &submissionRequest); err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusBadRequest,
 			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "Invalid request body: %v"}`, err),
+			Body:       `{"success": false, "error": "Invalid request body"}`,
 		}, nil
 	}
 
 	// Get questions with correct answers
-	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": submissionRequest.StoryID})
+	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": id})
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -206,22 +213,43 @@ func submitQuiz(ctx context.Context, req events.APIGatewayProxyRequest, headers 
 		}, nil
 	}
 
-	// Calculate score
+	// Validate answers length
+	if len(submissionRequest.Answers) != len(questions) {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Answer count does not match question count"}`,
+		}, nil
+	}
+
+	// Calculate score and track correct answers
 	score := 0
+	correctAnswers := make([]bool, len(questions))
+	totalPoints := 0
+	earnedPoints := 0
+
 	for i, answer := range submissionRequest.Answers {
-		if i < len(questions) && answer == questions[i].CorrectAnswer {
-			score++
+		if i < len(questions) {
+			totalPoints += questions[i].Points
+			if answer == questions[i].CorrectAnswer {
+				score++
+				correctAnswers[i] = true
+				earnedPoints += questions[i].Points
+			}
 		}
 	}
 
+	percentage := float64(score) / float64(len(questions)) * 100
+	passed := percentage >= 70.0 // 70% passing grade
+
 	// Save submission
 	submission := models.QuizSubmission{
-		ID:              primitive.NewObjectID(),
-		StoryID:         submissionRequest.StoryID,
-		Answers:         submissionRequest.Answers,
-		Score:           score,
-		TotalQuestions:  len(questions),
-		SubmittedAt:     time.Now(),
+		ID:             primitive.NewObjectID(),
+		StoryID:        id,
+		Answers:        submissionRequest.Answers,
+		Score:          score,
+		TotalQuestions: len(questions),
+		SubmittedAt:    time.Now(),
 	}
 
 	_, err = submissionsCollection.InsertOne(ctx, submission)
@@ -229,31 +257,37 @@ func submitQuiz(ctx context.Context, req events.APIGatewayProxyRequest, headers 
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
+			Body:       `{"success": false, "error": "Failed to save submission"}`,
 		}, nil
 	}
 
-	// Prepare response with results
-	type QuizResult struct {
-		Score           int     `json:"score"`
-		TotalQuestions  int     `json:"totalQuestions"`
-		Percentage      float64 `json:"percentage"`
-		SubmittedAt     time.Time `json:"submittedAt"`
+	// Prepare detailed response
+	result := map[string]interface{}{
+		"id":             submission.ID.Hex(),
+		"storyId":        storyID,
+		"answers":        submissionRequest.Answers,
+		"score":          score,
+		"totalQuestions": len(questions),
+		"percentage":     percentage,
+		"passed":         passed,
+		"correctAnswers": correctAnswers,
+		"earnedPoints":   earnedPoints,
+		"totalPoints":    totalPoints,
+		"submittedAt":    submission.SubmittedAt,
 	}
 
-	result := QuizResult{
-		Score:          score,
-		TotalQuestions: len(questions),
-		Percentage:     float64(score) / float64(len(questions)) * 100,
-		SubmittedAt:    submission.SubmittedAt,
+	response := map[string]interface{}{
+		"success": true,
+		"data":    result,
+		"message": fmt.Sprintf("Quiz submitted successfully. Score: %d/%d (%.1f%%)", score, len(questions), percentage),
 	}
 
-	jsonData, err := json.Marshal(result)
+	jsonData, err := json.Marshal(response)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
+			Body:       `{"success": false, "error": "Failed to serialize response"}`,
 		}, nil
 	}
 
