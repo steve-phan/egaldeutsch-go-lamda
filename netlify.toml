@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[plugins]]
+  package = "@netlify/plugin-lambda"
+
+[functions]
+  directory = "netlify/functions"
+  
+[functions."api/*"]
+  included_files = ["netlify/functions/**"]
