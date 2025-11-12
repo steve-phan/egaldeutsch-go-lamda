@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -19,18 +18,21 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var storiesCollection *mongo.Collection
-var questionsCollection *mongo.Collection
-
-func init() {
-	// Connect to MongoDB
-	if err := db.Connect(); err != nil {
-		fmt.Printf("Error connecting to MongoDB: %v\n", err)
-		os.Exit(1)
+// getCollections ensures database connection and returns collections
+func getCollections() (*mongo.Collection, *mongo.Collection, error) {
+	if err := db.EnsureConnection(); err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	storiesCollection = db.Database.Collection("stories")
-	questionsCollection = db.Database.Collection("questions")
+	database, err := db.GetDatabase()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get database: %w", err)
+	}
+
+	storiesCollection := database.Collection("stories")
+	questionsCollection := database.Collection("questions")
+
+	return storiesCollection, questionsCollection, nil
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -78,6 +80,15 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func getAllStories(ctx context.Context, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+	storiesCollection, _, err := getCollections()
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Database connection failed"}`,
+		}, nil
+	}
+
 	// Only fetch active stories
 	filter := bson.M{"isActive": true}
 	cursor, err := storiesCollection.Find(ctx, filter)
@@ -127,6 +138,15 @@ func getAllStories(ctx context.Context, headers map[string]string) (events.APIGa
 }
 
 func getStoryByID(ctx context.Context, storyID string, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+	storiesCollection, _, err := getCollections()
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Database connection failed"}`,
+		}, nil
+	}
+
 	id, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -177,6 +197,15 @@ func getStoryByID(ctx context.Context, storyID string, headers map[string]string
 }
 
 func createStory(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+	storiesCollection, _, err := getCollections()
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Database connection failed"}`,
+		}, nil
+	}
+
 	var story models.Story
 	if err := json.Unmarshal([]byte(req.Body), &story); err != nil {
 		return events.APIGatewayProxyResponse{
@@ -190,7 +219,7 @@ func createStory(ctx context.Context, req events.APIGatewayProxyRequest, headers
 	story.CreatedAt = time.Now()
 	story.UpdatedAt = time.Now()
 
-	_, err := storiesCollection.InsertOne(ctx, story)
+	_, err = storiesCollection.InsertOne(ctx, story)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,

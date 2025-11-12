@@ -1,5 +1,4 @@
 package main
-package main
 
 import (
 	"context"
@@ -30,7 +29,7 @@ func main() {
 
 func seedData() error {
 	ctx := context.Background()
-	
+
 	// Sample Story 1: A1 Level
 	story1 := models.Story{
 		ID:          primitive.NewObjectID(),
@@ -50,9 +49,9 @@ func seedData() error {
 			{German: "studieren", English: "to study", WordType: "verb"},
 			{German: "wichtig", English: "important", WordType: "adjective"},
 		},
-		IsActive:    true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	// Insert story

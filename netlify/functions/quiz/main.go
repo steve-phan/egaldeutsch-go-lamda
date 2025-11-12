@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -17,22 +16,25 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var storiesCollection *mongo.Collection
-var questionsCollection *mongo.Collection
-var submissionsCollection *mongo.Collection
-
-func init() {
-	// Connect to MongoDB
-	if err := db.Connect(); err != nil {
-		fmt.Printf("Error connecting to MongoDB: %v\n", err)
-		os.Exit(1)
+// getCollections ensures database connection and returns collections
+func getCollections() (*mongo.Collection, *mongo.Collection, *mongo.Collection, error) {
+	if err := db.EnsureConnection(); err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	storiesCollection = db.Database.Collection("stories")
-	questionsCollection = db.Database.Collection("questions")
-	submissionsCollection = db.Database.Collection("quiz_submissions")
+	database, err := db.GetDatabase()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to get database: %w", err)
+	}
+
+	storiesCollection := database.Collection("stories")
+	questionsCollection := database.Collection("questions")
+	submissionsCollection := database.Collection("submissions")
+
+	return storiesCollection, questionsCollection, submissionsCollection, nil
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -82,6 +84,15 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func getQuiz(ctx context.Context, storyID string, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+	storiesCollection, questionsCollection, _, err := getCollections()
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Database connection failed"}`,
+		}, nil
+	}
+
 	id, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -111,7 +122,10 @@ func getQuiz(ctx context.Context, storyID string, headers map[string]string) (ev
 	}
 
 	// Get questions for this story, ordered by order field
-	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": id})
+	filter = bson.M{"storyId": id}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{Key: "order", Value: 1}}) // Sort by order field ascending
+	questionsCursor, err := questionsCollection.Find(ctx, filter, findOptions)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -119,10 +133,10 @@ func getQuiz(ctx context.Context, storyID string, headers map[string]string) (ev
 			Body:       `{"success": false, "error": "Failed to fetch questions"}`,
 		}, nil
 	}
-	defer cursor.Close(ctx)
+	defer questionsCursor.Close(ctx)
 
 	var questions []models.Question
-	if err = cursor.All(ctx, &questions); err != nil {
+	if err = questionsCursor.All(ctx, &questions); err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    headers,
@@ -173,6 +187,15 @@ func getQuiz(ctx context.Context, storyID string, headers map[string]string) (ev
 }
 
 func submitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+	_, questionsCollection, submissionsCollection, err := getCollections()
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers:    headers,
+			Body:       `{"success": false, "error": "Database connection failed"}`,
+		}, nil
+	}
+
 	id, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -193,19 +216,23 @@ func submitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 		}, nil
 	}
 
-	// Get questions with correct answers
-	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": id})
+	// Get questions with correct answers (ordered by order field)
+	filter := bson.M{"storyId": id}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{Key: "order", Value: 1}}) // Sort by order field ascending
+	var questionsCursor *mongo.Cursor
+	questionsCursor, err = questionsCollection.Find(ctx, filter, findOptions)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
+			Body:       `{"success": false, "error": "Failed to fetch questions"}`,
 		}, nil
 	}
-	defer cursor.Close(ctx)
+	defer questionsCursor.Close(ctx)
 
 	var questions []models.Question
-	if err = cursor.All(ctx, &questions); err != nil {
+	if err = questionsCursor.All(ctx, &questions); err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
 			Headers:    headers,
