@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "gatsby";
 import Layout from "../components/layout";
 import StoryCard from "../components/StoryCard";
-import { Story } from "@/types";
-import { fetchStories } from "@/utils/api";
+import { Story } from "../types";
+import { fetchStories } from "../utils/api";
 
 const IndexPage: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);

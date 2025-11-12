@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "gatsby";
-import { Story } from "@/types";
-import { formatLevel, getLevelColor } from "@/utils/api";
+import { Story } from "../types";
+import { formatLevel, getLevelColor } from "../utils/api";
 
 interface StoryCardProps {
   story: Story;

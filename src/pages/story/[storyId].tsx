@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, navigate } from "gatsby";
 import Layout from "../../components/layout";
-import { Story } from "@/types";
-import { fetchStoryById, formatLevel, getLevelColor } from "@/utils/api";
+import { Story } from "../../types";
+import { fetchStoryById, formatLevel, getLevelColor } from "../../utils/api";
 
 interface StoryPageProps {
   params: {
@@ -96,12 +96,16 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
           >
             ← Back to Stories
           </Link>
-          
+
           <div className="flex items-start justify-between mb-4">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 flex-1 mr-4">
               {story.title}
             </h1>
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLevelColor(story.level)} flex-shrink-0`}>
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLevelColor(
+                story.level
+              )} flex-shrink-0`}
+            >
               {story.level} - {formatLevel(story.level)}
             </span>
           </div>
@@ -113,14 +117,14 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
             <span className="flex items-center">
               ⏱️ {story.readingTime} min read
             </span>
-            <span className="flex items-center">
-              🎯 {story.topic}
-            </span>
+            <span className="flex items-center">🎯 {story.topic}</span>
           </div>
 
           {story.summary && (
             <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">Story Summary</h3>
+              <h3 className="text-sm font-medium text-blue-900 mb-2">
+                Story Summary
+              </h3>
               <p className="text-blue-800 text-sm">{story.summary}</p>
             </div>
           )}
@@ -129,7 +133,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
         {/* Story Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8">
           <div className="prose prose-lg max-w-none">
-            {story.content.split('\n').map((paragraph, index) => (
+            {story.content.split("\n").map((paragraph, index) => (
               <p key={index} className="mb-4 text-gray-800 leading-relaxed">
                 {paragraph}
               </p>
@@ -145,12 +149,16 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {story.vocabulary.map((word, index) => (
-                <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
+                <div
+                  key={index}
+                  className="bg-white rounded-lg p-4 border border-gray-200"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center mb-1">
                         <span className="font-semibold text-gray-900 mr-2">
-                          {word.article && `${word.article} `}{word.german}
+                          {word.article && `${word.article} `}
+                          {word.german}
                         </span>
                         <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
                           {word.wordType}
