@@ -7,7 +7,10 @@
     "build": "gatsby build",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dev": "netlify dev",
+    "dev:functions": "netlify functions:serve",
+    "build:functions": "go build -o netlify/functions/stories/stories ./netlify/functions/stories && go build -o netlify/functions/quiz/quiz ./netlify/functions/quiz && go build -o netlify/functions/health/health ./netlify/functions/health"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -17,6 +20,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@netlify/plugin-gatsby": "^3.8.4",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.45",
@@ -24,6 +28,7 @@
     "autoprefixer": "^10.4.16",
     "gatsby-plugin-postcss": "^6.12.0",
     "gatsby-plugin-typescript": "^5.12.0",
+    "netlify-cli": "^23.10.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.0"

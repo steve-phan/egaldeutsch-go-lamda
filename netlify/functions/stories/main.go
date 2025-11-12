@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"egaldeutsch-serverless/db"
@@ -53,14 +52,12 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	// Route requests
-	path := req.Path
 	method := req.HTTPMethod
 
-	// Extract story ID from path if present
-	pathParts := strings.Split(strings.Trim(path, "/"), "/")
+	// Check for story ID in query parameters
 	storyID := ""
-	if len(pathParts) > 1 {
-		storyID = pathParts[1]
+	if id, exists := req.QueryStringParameters["id"]; exists && id != "" {
+		storyID = id
 	}
 
 	switch {

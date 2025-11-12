@@ -6,14 +6,8 @@
   NODE_VERSION = "18"
   NPM_FLAGS = "--production=false"
 
-[[plugins]]
-  package = "@netlify/plugin-lambda"
-
 [functions]
   directory = "netlify/functions"
-  
-[functions."api/*"]
-  included_files = ["netlify/functions/**", "models/**", "db/**"]
 
 [[redirects]]
   from = "/api/*"
