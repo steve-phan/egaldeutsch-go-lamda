@@ -18,6 +18,11 @@
     "test:e2e:creator": "playwright test tests/e2e/creator-workflow.spec.ts",
     "test:e2e:admin": "playwright test tests/e2e/admin-workflow.spec.ts",
     "test:e2e:lifecycle": "playwright test tests/e2e/complete-lifecycle.spec.ts",
+    "test:e2e:auth": "playwright test tests/e2e/auth-workflows.spec.ts",
+    "test:e2e:user-mgmt": "playwright test tests/e2e/admin-user-management.spec.ts",
+    "test:e2e:stories": "playwright test tests/e2e/story-workflows.spec.ts",
+    "test:e2e:questions": "playwright test tests/e2e/question-quiz-workflows.spec.ts",
+    "test:e2e:errors": "playwright test tests/e2e/error-handling.spec.ts",
     "test:report": "playwright show-report"
   },
   "dependencies": {
