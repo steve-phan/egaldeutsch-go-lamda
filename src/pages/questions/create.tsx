@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { navigate } from 'gatsby';
-import Layout from '../../components/layout';
-import ProtectedRoute from '../../components/auth/ProtectedRoute';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent 
-} from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Badge } from '../../components/ui/badge';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { navigate } from "gatsby";
+import Layout from "../../components/layout";
+import ProtectedRoute from "../../components/auth/ProtectedRoute";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
+import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Badge } from "../../components/ui/badge";
+import axios from "axios";
 
 const API_BASE_URL =
   process.env.NODE_ENV === "production"
@@ -29,28 +29,28 @@ interface Story {
 }
 
 const QUESTION_TYPES = [
-  { value: 'comprehension', label: 'Comprehension' },
-  { value: 'vocabulary', label: 'Vocabulary' },
-  { value: 'grammar', label: 'Grammar' },
+  { value: "comprehension", label: "Comprehension" },
+  { value: "vocabulary", label: "Vocabulary" },
+  { value: "grammar", label: "Grammar" },
 ];
 
-const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard'];
+const DIFFICULTY_LEVELS = ["easy", "medium", "hard"];
 
 const CreateQuestionPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [stories, setStories] = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
 
   const [formData, setFormData] = useState({
-    storyId: '',
-    question: '',
-    questionType: 'comprehension',
-    difficulty: 'medium',
-    options: ['', '', '', ''],
+    storyId: "",
+    question: "",
+    questionType: "comprehension",
+    difficulty: "medium",
+    options: ["", "", "", ""],
     correctAnswer: 0,
-    explanation: '',
+    explanation: "",
     points: 10,
     order: 1,
   });
@@ -65,49 +65,58 @@ const CreateQuestionPage: React.FC = () => {
       const response = await axios.get(`${API_BASE_URL}/stories`);
       setStories(response.data.data || []);
     } catch (err) {
-      console.error('Error loading stories:', err);
+      console.error("Error loading stories:", err);
     } finally {
       setLoadingStories(false);
     }
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (error) setError('');
+    const { name, value, type } = e.target;
+
+    // Convert numeric fields to numbers
+    let processedValue: any = value;
+    if (type === "number" && value !== "") {
+      processedValue = parseInt(value, 10);
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    if (error) setError("");
   };
 
   const handleOptionChange = (index: number, value: string) => {
     const newOptions = [...formData.options];
     newOptions[index] = value;
-    setFormData(prev => ({ ...prev, options: newOptions }));
+    setFormData((prev) => ({ ...prev, options: newOptions }));
   };
 
   const handleCorrectAnswerChange = (index: number) => {
-    setFormData(prev => ({ ...prev, correctAnswer: index }));
+    setFormData((prev) => ({ ...prev, correctAnswer: index }));
   };
 
   const validateForm = (): boolean => {
     if (!formData.storyId) {
-      setError('Please select a story');
+      setError("Please select a story");
       return false;
     }
 
     if (!formData.question.trim()) {
-      setError('Please enter a question');
+      setError("Please enter a question");
       return false;
     }
 
-    const filledOptions = formData.options.filter(opt => opt.trim());
+    const filledOptions = formData.options.filter((opt) => opt.trim());
     if (filledOptions.length < 4) {
-      setError('Please fill in all 4 options');
+      setError("Please fill in all 4 options");
       return false;
     }
 
     if (!formData.options[formData.correctAnswer].trim()) {
-      setError('The correct answer option cannot be empty');
+      setError("The correct answer option cannot be empty");
       return false;
     }
 
@@ -116,7 +125,7 @@ const CreateQuestionPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!validateForm()) {
       return;
@@ -140,14 +149,14 @@ const CreateQuestionPage: React.FC = () => {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate('/questions');
+        navigate("/questions");
       }, 2000);
     } catch (err: any) {
-      console.error('Error creating question:', err);
+      console.error("Error creating question:", err);
       if (err.response) {
-        setError(err.response.data?.error || 'Failed to create question');
+        setError(err.response.data?.error || "Failed to create question");
       } else {
-        setError('Network error. Please check your connection.');
+        setError("Network error. Please check your connection.");
       }
     } finally {
       setIsSubmitting(false);
@@ -156,7 +165,7 @@ const CreateQuestionPage: React.FC = () => {
 
   return (
     <Layout>
-      <ProtectedRoute allowedRoles={['creator', 'admin']}>
+      <ProtectedRoute allowedRoles={["creator", "admin"]}>
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="mb-6">
             <h1 className="text-3xl font-bold mb-2">Create New Question</h1>
@@ -190,7 +199,9 @@ const CreateQuestionPage: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="storyId">Story *</Label>
                     {loadingStories ? (
-                      <p className="text-sm text-muted-foreground">Loading stories...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Loading stories...
+                      </p>
                     ) : (
                       <select
                         id="storyId"
@@ -202,7 +213,7 @@ const CreateQuestionPage: React.FC = () => {
                         required
                       >
                         <option value="">Select a story</option>
-                        {stories.map(story => (
+                        {stories.map((story) => (
                           <option key={story.id} value={story.id}>
                             {story.title} ({story.level})
                           </option>
@@ -223,7 +234,7 @@ const CreateQuestionPage: React.FC = () => {
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         required
                       >
-                        {QUESTION_TYPES.map(type => (
+                        {QUESTION_TYPES.map((type) => (
                           <option key={type.value} value={type.value}>
                             {type.label}
                           </option>
@@ -241,7 +252,7 @@ const CreateQuestionPage: React.FC = () => {
                         disabled={isSubmitting}
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        {DIFFICULTY_LEVELS.map(level => (
+                        {DIFFICULTY_LEVELS.map((level) => (
                           <option key={level} value={level}>
                             {level.charAt(0).toUpperCase() + level.slice(1)}
                           </option>
@@ -326,9 +337,13 @@ const CreateQuestionPage: React.FC = () => {
                       </div>
                       <Input
                         id={`option-${index}`}
-                        placeholder={`Enter option ${String.fromCharCode(65 + index)}`}
+                        placeholder={`Enter option ${String.fromCharCode(
+                          65 + index
+                        )}`}
                         value={option}
-                        onChange={(e) => handleOptionChange(index, e.target.value)}
+                        onChange={(e) =>
+                          handleOptionChange(index, e.target.value)
+                        }
                         disabled={isSubmitting}
                         required
                       />
@@ -341,7 +356,8 @@ const CreateQuestionPage: React.FC = () => {
                 <CardHeader>
                   <CardTitle>Explanation</CardTitle>
                   <CardDescription>
-                    Explain why the correct answer is right (optional but recommended)
+                    Explain why the correct answer is right (optional but
+                    recommended)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -369,13 +385,13 @@ const CreateQuestionPage: React.FC = () => {
                       Creating...
                     </>
                   ) : (
-                    'Create Question'
+                    "Create Question"
                   )}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/questions')}
+                  onClick={() => navigate("/questions")}
                   disabled={isSubmitting}
                 >
                   Cancel

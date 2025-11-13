@@ -26,7 +26,7 @@ type QuestionRequest struct {
 	CorrectAnswer int      `json:"correctAnswer"`
 	Explanation   string   `json:"explanation"`
 	Points        int      `json:"points"`
-	Order         int      `json:"order"`
+	Order         int      `json:"order"` // Accept as number from frontend
 	Difficulty    string   `json:"difficulty"`
 }
 

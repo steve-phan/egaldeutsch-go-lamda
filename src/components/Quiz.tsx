@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { Question, QuizResult } from "../types";
-import { Card, CardContent, Badge, Button, Alert, AlertTitle, AlertDescription } from "./ui";
+import {
+  Card,
+  CardContent,
+  Badge,
+  Button,
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "./ui";
 import { cn } from "@/lib/utils";
 
 interface QuizQuestionProps {
@@ -53,11 +61,16 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
             let buttonClass = cn(
               "w-full text-left p-4 rounded-lg border-2 transition-all duration-200",
               {
-                "border-success bg-success/10 text-success": showResult && isCorrect,
-                "border-destructive bg-destructive/10 text-destructive": isIncorrect,
-                "border-muted bg-muted/50 text-muted-foreground": showResult && !isCorrect && !isSelected,
-                "border-primary bg-primary/10 text-primary": !showResult && isSelected,
-                "border-input hover:border-muted-foreground hover:bg-accent": !showResult && !isSelected,
+                "border-success bg-success/10 text-success":
+                  showResult && isCorrect,
+                "border-destructive bg-destructive/10 text-destructive":
+                  isIncorrect,
+                "border-muted bg-muted/50 text-muted-foreground":
+                  showResult && !isCorrect && !isSelected,
+                "border-primary bg-primary/10 text-primary":
+                  !showResult && isSelected,
+                "border-input hover:border-muted-foreground hover:bg-accent":
+                  !showResult && !isSelected,
               }
             );
 
@@ -77,7 +90,9 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
                     <span className="flex-shrink-0 text-success ml-2">✓</span>
                   )}
                   {showResult && isIncorrect && (
-                    <span className="flex-shrink-0 text-destructive ml-2">✗</span>
+                    <span className="flex-shrink-0 text-destructive ml-2">
+                      ✗
+                    </span>
                   )}
                 </div>
               </button>
@@ -86,7 +101,10 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
         </div>
 
         {showResult && question.explanation && (
-          <Alert variant="default" className="mt-4 bg-primary/10 border-primary/20">
+          <Alert
+            variant="default"
+            className="mt-4 bg-primary/10 border-primary/20"
+          >
             <AlertTitle className="text-primary">Explanation:</AlertTitle>
             <AlertDescription className="text-primary/90">
               {question.explanation}
@@ -95,7 +113,9 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
         )}
 
         <div className="mt-4 text-right">
-          <span className="text-sm text-muted-foreground">Points: {question.points}</span>
+          <span className="text-sm text-muted-foreground">
+            Points: {question.points}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -131,14 +151,16 @@ const QuizResults: React.FC<QuizResultsProps> = ({
     <Card className="text-center">
       <CardContent className="pt-8 pb-8">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Quiz Results</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Quiz Results
+          </h2>
           <div
             className={cn(
               "text-4xl font-bold mb-2",
               getScoreColor(result.percentage)
             )}
           >
-            {result.percentage}%
+            {result.percentage.toFixed(2)}%
           </div>
           <p className="text-lg text-muted-foreground">
             {result.score} out of {result.totalQuestions} correct
@@ -173,18 +195,10 @@ const QuizResults: React.FC<QuizResultsProps> = ({
         )}
 
         <div className="flex space-x-4 justify-center">
-          <Button
-            onClick={onReturnToStory}
-            variant="default"
-            size="lg"
-          >
+          <Button onClick={onReturnToStory} variant="default" size="lg">
             Read Story Again
           </Button>
-          <Button
-            onClick={onRetakeQuiz}
-            variant="success"
-            size="lg"
-          >
+          <Button onClick={onRetakeQuiz} variant="success" size="lg">
             Retake Quiz
           </Button>
         </div>
