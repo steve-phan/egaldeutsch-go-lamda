@@ -23,6 +23,8 @@
     "test:e2e:stories": "playwright test tests/e2e/story-workflows.spec.ts",
     "test:e2e:questions": "playwright test tests/e2e/question-quiz-workflows.spec.ts",
     "test:e2e:errors": "playwright test tests/e2e/error-handling.spec.ts",
+    "test:e2e:roles": "playwright test tests/e2e/role-based-crud-workflows.spec.ts",
+    "test:e2e:cross-role": "playwright test tests/e2e/cross-role-scenarios.spec.ts",
     "test:report": "playwright show-report"
   },
   "dependencies": {
