@@ -13,6 +13,11 @@ interface ContentCardProps {
   showReviewButton: boolean;
 }
 
+const isAIGenerated = (createdBy: string): boolean => {
+  // Check if content was created by AI generator
+  return createdBy === "000000000000000000000001" || createdBy === "ai-generator";
+};
+
 export const ContentCard: React.FC<ContentCardProps> = ({
   content,
   onReview,
@@ -20,11 +25,16 @@ export const ContentCard: React.FC<ContentCardProps> = ({
   showReviewButton,
 }) => {
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={`hover:shadow-md transition-shadow ${isAIGenerated(content.createdBy) ? "border-blue-200 bg-blue-50/30" : ""}`}>
       <CardContent className="pt-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
+              {isAIGenerated(content.createdBy) && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                  🤖 AI Generated
+                </Badge>
+              )}
               <Badge variant="outline" className="text-xs">
                 {content.type.toUpperCase()}
               </Badge>

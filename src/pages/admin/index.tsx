@@ -146,7 +146,7 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Card
             className="hover:shadow-md transition-shadow cursor-pointer"
             onClick={() => navigate("/admin/reviews")}
@@ -196,6 +196,30 @@ const AdminDashboard: React.FC = () => {
                   )}
                 </div>
                 <div className="text-3xl">👥</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="hover:shadow-md transition-shadow cursor-pointer border-blue-200 bg-blue-50/30"
+            onClick={() => navigate("/admin/ai-generation")}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    🤖 AI Generation
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Auto-generate questions and quizzes
+                  </p>
+                  <div className="mt-2">
+                    <Badge className="bg-blue-100 text-blue-800">
+                      New Feature
+                    </Badge>
+                  </div>
+                </div>
+                <div className="text-3xl">✨</div>
               </div>
             </CardContent>
           </Card>
