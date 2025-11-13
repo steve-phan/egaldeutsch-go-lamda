@@ -114,6 +114,7 @@ type QuizSubmission struct {
 	QuizID         primitive.ObjectID `bson:"quizId" json:"quizId"`
 	StoryID        primitive.ObjectID `bson:"storyId" json:"storyId"`
 	UserID         primitive.ObjectID `bson:"userId" json:"userId"`   // User who submitted
+	Username       string             `bson:"username,omitempty" json:"username,omitempty"` // Denormalized for leaderboard
 	Answers        []int              `bson:"answers" json:"answers"` // Array of selected answer indices
 	Score          int                `bson:"score" json:"score"`     // Number of correct answers
 	TotalQuestions int                `bson:"totalQuestions" json:"totalQuestions"`
@@ -123,6 +124,18 @@ type QuizSubmission struct {
 	Passed         bool               `bson:"passed" json:"passed"`
 	TimeSpent      int                `bson:"timeSpent" json:"timeSpent"` // Time spent in seconds
 	SubmittedAt    time.Time          `bson:"submittedAt" json:"submittedAt"`
+}
+
+// LeaderboardEntry represents a single entry in the leaderboard
+type LeaderboardEntry struct {
+	UserID          primitive.ObjectID `bson:"userId" json:"userId"`
+	Username        string             `bson:"username" json:"username"`
+	TotalPoints     int                `bson:"totalPoints" json:"totalPoints"`
+	QuizzesTaken    int                `bson:"quizzesTaken" json:"quizzesTaken"`
+	QuizzesPassed   int                `bson:"quizzesPassed" json:"quizzesPassed"`
+	AverageScore    float64            `bson:"averageScore" json:"averageScore"`
+	Rank            int                `bson:"-" json:"rank"` // Computed field
+	LastSubmittedAt time.Time          `bson:"lastSubmittedAt" json:"lastSubmittedAt"`
 }
 
 // User represents a system user (creators, reviewers, admins)
