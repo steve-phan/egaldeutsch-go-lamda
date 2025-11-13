@@ -261,11 +261,110 @@ func listQuestions(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 }
 
 func updateQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return errorResponse(501, "Update question not implemented yet")
+	questionID := request.PathParameters["id"]
+	objectID, err := primitive.ObjectIDFromHex(questionID)
+	if err != nil {
+		return errorResponse(400, "Invalid question ID")
+	}
+
+	var questionReq QuestionRequest
+	if err := json.Unmarshal([]byte(request.Body), &questionReq); err != nil {
+		return errorResponse(400, "Invalid request body")
+	}
+
+	// Validate the updated question
+	question := &models.Question{
+		Question:      questionReq.Question,
+		QuestionType:  questionReq.QuestionType,
+		Options:       questionReq.Options,
+		CorrectAnswer: questionReq.CorrectAnswer,
+		Explanation:   questionReq.Explanation,
+		Points:        questionReq.Points,
+		Order:         questionReq.Order,
+		Difficulty:    questionReq.Difficulty,
+	}
+
+	if err := question.Validate(); err != nil {
+		return errorResponse(400, fmt.Sprintf("Validation error: %v", err))
+	}
+
+	// Update the question in database
+	collection := db.Database.Collection("questions")
+	update := bson.M{
+		"$set": bson.M{
+			"question":      question.Question,
+			"questionType":  question.QuestionType,
+			"options":       question.Options,
+			"correctAnswer": question.CorrectAnswer,
+			"explanation":   question.Explanation,
+			"points":        question.Points,
+			"order":         question.Order,
+			"difficulty":    question.Difficulty,
+			"updatedAt":     time.Now(),
+		},
+		"$inc": bson.M{
+			"version": 1,
+		},
+	}
+
+	result := collection.FindOneAndUpdate(
+		context.Background(),
+		bson.M{"_id": objectID},
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	)
+
+	var updatedQuestion models.Question
+	if err := result.Decode(&updatedQuestion); err != nil {
+		return errorResponse(404, "Question not found")
+	}
+
+	response := convertToQuestionResponse(updatedQuestion)
+	responseBody, _ := json.Marshal(response)
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       string(responseBody),
+		Headers: map[string]string{
+			"Content-Type":                "application/json",
+			"Access-Control-Allow-Origin": "*",
+		},
+	}, nil
 }
 
 func deleteQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	return errorResponse(501, "Delete question not implemented yet")
+	questionID := request.PathParameters["id"]
+	objectID, err := primitive.ObjectIDFromHex(questionID)
+	if err != nil {
+		return errorResponse(400, "Invalid question ID")
+	}
+
+	collection := db.Database.Collection("questions")
+	update := bson.M{
+		"$set": bson.M{
+			"status":    models.StatusArchived,
+			"updatedAt": time.Now(),
+		},
+	}
+
+	result := collection.FindOneAndUpdate(
+		context.Background(),
+		bson.M{"_id": objectID},
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	)
+
+	var archivedQuestion models.Question
+	if err := result.Decode(&archivedQuestion); err != nil {
+		return errorResponse(404, "Question not found")
+	}
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: 204,
+		Headers: map[string]string{
+			"Access-Control-Allow-Origin": "*",
+		},
+	}, nil
 }
 
 func convertToQuestionResponse(question models.Question) QuestionResponse {
