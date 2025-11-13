@@ -31,6 +31,9 @@ func seedData() error {
 	ctx := context.Background()
 
 	// Sample Story 1: A1 Level
+	now := time.Now()
+	adminID := primitive.NewObjectID() // Would be actual admin user ID in real system
+	
 	story1 := models.Story{
 		ID:          primitive.NewObjectID(),
 		Title:       "Meine Familie",
@@ -38,7 +41,7 @@ func seedData() error {
 		Level:       "A1",
 		WordCount:   120,
 		ReadingTime: 2,
-		Topic:       "Familie",
+		Topics:      []string{"Familie", "Alltag"},
 		Summary:     "Anna stellt ihre kleine Familie vor: ihre Eltern Thomas und Maria, und ihren Bruder Max.",
 		Vocabulary: []models.VocabularyWord{
 			{German: "Familie", English: "family", WordType: "noun", Article: "die"},
@@ -49,9 +52,17 @@ func seedData() error {
 			{German: "studieren", English: "to study", WordType: "verb"},
 			{German: "wichtig", English: "important", WordType: "adjective"},
 		},
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ContentMetadata: models.ContentMetadata{
+			Status:      models.StatusActive,
+			CreatedBy:   adminID,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+			ReviewedBy:  &adminID,
+			ReviewedAt:  &now,
+			ApprovedAt:  &now,
+			ActivatedAt: &now,
+			Version:     1,
+		},
 	}
 
 	// Insert story
@@ -62,126 +73,83 @@ func seedData() error {
 	}
 
 	// Sample Questions for Story 1
+	questionMetadata := models.ContentMetadata{
+		Status:      models.StatusActive,
+		CreatedBy:   adminID,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+		ReviewedBy:  &adminID,
+		ReviewedAt:  &now,
+		ApprovedAt:  &now,
+		ActivatedAt: &now,
+		Version:     1,
+	}
+
 	questions1 := []models.Question{
 		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Wie heißt die Hauptperson?",
-			QuestionType:  "comprehension",
-			Options:       []string{"Maria", "Anna", "Max", "Thomas"},
-			CorrectAnswer: 1,
-			Explanation:   "Im ersten Satz sagt sie: 'Ich heiße Anna.'",
-			Points:        10,
-			Order:         1,
-			CreatedAt:     time.Now(),
+			ID:              primitive.NewObjectID(),
+			StoryID:         story1.ID,
+			Question:        "Wie heißt die Hauptperson?",
+			QuestionType:    "comprehension",
+			Options:         []string{"Maria", "Anna", "Max", "Thomas"},
+			CorrectAnswer:   1,
+			Explanation:     "Im ersten Satz sagt sie: 'Ich heiße Anna.'",
+			Points:          10,
+			Order:           1,
+			Difficulty:      "easy",
+			ContentMetadata: questionMetadata,
 		},
 		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Wo wohnt Anna?",
-			QuestionType:  "comprehension",
-			Options:       []string{"München", "Hamburg", "Berlin", "Köln"},
-			CorrectAnswer: 2,
-			Explanation:   "Anna sagt: 'Ich wohne in Berlin.'",
-			Points:        10,
-			Order:         2,
-			CreatedAt:     time.Now(),
+			ID:              primitive.NewObjectID(),
+			StoryID:         story1.ID,
+			Question:        "Wie alt ist Anna?",
+			QuestionType:    "comprehension",
+			Options:         []string{"23", "25", "48", "50"},
+			CorrectAnswer:   1,
+			Explanation:     "Anna sagt: 'Ich bin 25 Jahre alt.'",
+			Points:          10,
+			Order:           2,
+			Difficulty:      "easy",
+			ContentMetadata: questionMetadata,
 		},
 		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Was ist Annas Vater von Beruf?",
-			QuestionType:  "comprehension",
-			Options:       []string{"Arzt", "Lehrer", "Student", "Koch"},
-			CorrectAnswer: 1,
-			Explanation:   "Der Text sagt: 'Er ist 50 Jahre alt und arbeitet als Lehrer.'",
-			Points:        10,
-			Order:         3,
-			CreatedAt:     time.Now(),
+			ID:              primitive.NewObjectID(),
+			StoryID:         story1.ID,
+			Question:        "Was macht Annas Vater beruflich?",
+			QuestionType:    "comprehension",
+			Options:         []string{"Arzt", "Lehrer", "Student", "Informatiker"},
+			CorrectAnswer:   1,
+			Explanation:     "Der Text sagt: 'Mein Vater heißt Thomas. Er ist 50 Jahre alt und arbeitet als Lehrer.'",
+			Points:          10,
+			Order:           3,
+			Difficulty:      "medium",
+			ContentMetadata: questionMetadata,
 		},
 		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Wie viele Geschwister hat Anna?",
-			QuestionType:  "comprehension",
-			Options:       []string{"keine", "einen Bruder", "eine Schwester", "zwei Brüder"},
-			CorrectAnswer: 1,
-			Explanation:   "Anna sagt: 'Ich habe einen Bruder. Er heißt Max.'",
-			Points:        10,
-			Order:         4,
-			CreatedAt:     time.Now(),
+			ID:              primitive.NewObjectID(),
+			StoryID:         story1.ID,
+			Question:        "Was studiert Max?",
+			QuestionType:    "comprehension",
+			Options:         []string{"Medizin", "Informatik", "Deutsch", "Pädagogik"},
+			CorrectAnswer:   1,
+			Explanation:     "Der Text erklärt: 'Max studiert Informatik an der Universität.'",
+			Points:          10,
+			Order:           4,
+			Difficulty:      "medium",
+			ContentMetadata: questionMetadata,
 		},
 		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Was studiert Max?",
-			QuestionType:  "comprehension",
-			Options:       []string{"Medizin", "Informatik", "Geschichte", "Mathematik"},
-			CorrectAnswer: 1,
-			Explanation:   "Der Text sagt: 'Max studiert Informatik an der Universität.'",
-			Points:        10,
-			Order:         5,
-			CreatedAt:     time.Now(),
-		},
-		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Was bedeutet 'Familie' auf Englisch?",
-			QuestionType:  "vocabulary",
-			Options:       []string{"friend", "family", "house", "work"},
-			CorrectAnswer: 1,
-			Explanation:   "'Familie' means 'family' in English.",
-			Points:        10,
-			Order:         6,
-			CreatedAt:     time.Now(),
-		},
-		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Welcher Artikel gehört zu 'Mutter'?",
-			QuestionType:  "grammar",
-			Options:       []string{"der", "die", "das", "den"},
-			CorrectAnswer: 1,
-			Explanation:   "'Mutter' ist feminin, deshalb 'die Mutter'.",
-			Points:        10,
-			Order:         7,
-			CreatedAt:     time.Now(),
-		},
-		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Wann isst die Familie zusammen?",
-			QuestionType:  "comprehension",
-			Options:       []string{"jeden Tag", "am Wochenende", "nie", "nur montags"},
-			CorrectAnswer: 1,
-			Explanation:   "Der Text sagt: 'Am Wochenende essen wir zusammen.'",
-			Points:        10,
-			Order:         8,
-			CreatedAt:     time.Now(),
-		},
-		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Was macht Annas Mutter am besten?",
-			QuestionType:  "comprehension",
-			Options:       []string{"Kuchen", "Schnitzel", "Suppe", "Salat"},
-			CorrectAnswer: 1,
-			Explanation:   "Anna sagt: 'Meine Mutter macht die beste Schnitzel!'",
-			Points:        10,
-			Order:         9,
-			CreatedAt:     time.Now(),
-		},
-		{
-			ID:            primitive.NewObjectID(),
-			StoryID:       story1.ID,
-			Question:      "Was ist für Anna sehr wichtig?",
-			QuestionType:  "comprehension",
-			Options:       []string{"die Arbeit", "das Studium", "die Familie", "das Essen"},
-			CorrectAnswer: 2,
-			Explanation:   "Anna sagt am Ende: 'Meine Familie ist sehr wichtig für mich.'",
-			Points:        10,
-			Order:         10,
-			CreatedAt:     time.Now(),
+			ID:              primitive.NewObjectID(),
+			StoryID:         story1.ID,
+			Question:        "Was bedeutet 'Familie' auf Englisch?",
+			QuestionType:    "vocabulary",
+			Options:         []string{"friend", "family", "house", "work"},
+			CorrectAnswer:   1,
+			Explanation:     "'Familie' bedeutet 'family' auf Englisch.",
+			Points:          10,
+			Order:           5,
+			Difficulty:      "easy",
+			ContentMetadata: questionMetadata,
 		},
 	}
 
@@ -194,6 +162,30 @@ func seedData() error {
 		}
 	}
 
-	fmt.Printf("Added story '%s' with %d questions\n", story1.Title, len(questions1))
+	// Create a quiz for the story
+	quiz1 := models.Quiz{
+		ID:              primitive.NewObjectID(),
+		StoryID:         story1.ID,
+		Title:           "Quiz: Meine Familie",
+		Description:     "Test your understanding of Anna's family story",
+		QuestionIDs:     []primitive.ObjectID{},
+		TotalQuestions:  5,
+		PassingScore:    70,
+		QuizType:        "auto_generated",
+		ContentMetadata: questionMetadata,
+	}
+
+	// Get question IDs for the quiz
+	for _, q := range questions1 {
+		quiz1.QuestionIDs = append(quiz1.QuestionIDs, q.ID)
+	}
+
+	// Insert quiz
+	quizCollection := db.Database.Collection("quizzes")
+	_, err = quizCollection.InsertOne(ctx, quiz1)
+	if err != nil {
+		return fmt.Errorf("failed to insert quiz: %w", err)
+	}
+
 	return nil
 }
