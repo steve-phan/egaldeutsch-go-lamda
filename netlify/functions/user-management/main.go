@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -81,6 +82,19 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}
 	defer db.Disconnect()
 
+	// Handle CORS preflight requests
+	if request.HTTPMethod == "OPTIONS" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 200,
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin":  "*",
+				"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				"Access-Control-Max-Age":       "86400",
+			},
+		}, nil
+	}
+
 	// Route based on HTTP method and path
 	switch request.HTTPMethod {
 	case "POST":
@@ -94,8 +108,10 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 			StatusCode: 404,
 			Body:       `{"error": "Endpoint not found"}`,
 			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
+				"Content-Type":                 "application/json",
+				"Access-Control-Allow-Origin":  "*",
+				"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
 			},
 		}, nil
 	case "GET":
@@ -115,8 +131,10 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 			StatusCode: 405,
 			Body:       `{"error": "Method not allowed"}`,
 			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
+				"Content-Type":                 "application/json",
+				"Access-Control-Allow-Origin":  "*",
+				"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
 			},
 		}, nil
 	}
@@ -411,11 +429,97 @@ func getClientIP(request events.APIGatewayProxyRequest) string {
 	return request.RequestContext.Identity.SourceIP
 }
 
-// Stub functions for remaining endpoints - to be implemented
+// validateSession validates a session token and returns the user
+func validateSession(request events.APIGatewayProxyRequest) (*models.User, error) {
+	authHeader := request.Headers["Authorization"]
+	if authHeader == "" {
+		authHeader = request.Headers["authorization"] // Check lowercase
+	}
+
+	if authHeader == "" {
+		return nil, fmt.Errorf("no authorization header")
+	}
+
+	// Extract token from "Bearer <token>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return nil, fmt.Errorf("invalid authorization header format")
+	}
+
+	token := parts[1]
+
+	// Find session in database
+	sessionCollection := db.Database.Collection("sessions")
+	var session Session
+	err := sessionCollection.FindOne(context.TODO(), bson.M{
+		"token":     token,
+		"expiresAt": bson.M{"$gt": time.Now()},
+	}).Decode(&session)
+
+	if err != nil {
+		return nil, fmt.Errorf("invalid or expired token")
+	}
+
+	// Get user from session
+	userCollection := db.Database.Collection("users")
+	var user models.User
+	err = userCollection.FindOne(context.TODO(), bson.M{"_id": session.UserID}).Decode(&user)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// Check if user is active
+	if user.Status != models.UserStatusActive {
+		return nil, fmt.Errorf("user account is not active")
+	}
+
+	return &user, nil
+}
+
+// getUserProfile returns the current user's profile
 func getUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Validate session
+	user, err := validateSession(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 401,
+			Body:       `{"error": "Unauthorized"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Return user profile
+	userResponse := UserResponse{
+		ID:          user.ID.Hex(),
+		Username:    user.Username,
+		Email:       user.Email,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Role:        string(user.Role),
+		Status:      string(user.Status),
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+		LastLoginAt: user.LastLoginAt,
+	}
+
+	response, err := json.Marshal(userResponse)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to encode response"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
 	return events.APIGatewayProxyResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented yet"}`,
+		StatusCode: 200,
+		Body:       string(response),
 		Headers: map[string]string{
 			"Content-Type":                "application/json",
 			"Access-Control-Allow-Origin": "*",
@@ -424,9 +528,101 @@ func getUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 }
 
 func listUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Validate session and check admin role
+	user, err := validateSession(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 401,
+			Body:       `{"error": "Unauthorized"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Check if user has admin role
+	if user.Role != models.RoleAdmin && user.Role != models.RoleReviewer {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 403,
+			Body:       `{"error": "Insufficient permissions"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Get query parameters for filtering
+	queryParams := request.QueryStringParameters
+	filter := bson.M{}
+
+	if role := queryParams["role"]; role != "" {
+		filter["role"] = role
+	}
+	if status := queryParams["status"]; status != "" {
+		filter["status"] = status
+	}
+
+	// Find users
+	collection := db.Database.Collection("users")
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to fetch users"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+	defer cursor.Close(context.TODO())
+
+	var users []models.User
+	if err = cursor.All(context.TODO(), &users); err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to decode users"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Convert to response format (without passwords)
+	var userResponses []UserResponse
+	for _, u := range users {
+		userResponses = append(userResponses, UserResponse{
+			ID:          u.ID.Hex(),
+			Username:    u.Username,
+			Email:       u.Email,
+			FirstName:   u.FirstName,
+			LastName:    u.LastName,
+			Role:        string(u.Role),
+			Status:      string(u.Status),
+			CreatedAt:   u.CreatedAt,
+			UpdatedAt:   u.UpdatedAt,
+			LastLoginAt: u.LastLoginAt,
+		})
+	}
+
+	response, err := json.Marshal(userResponses)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to encode response"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
 	return events.APIGatewayProxyResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented yet"}`,
+		StatusCode: 200,
+		Body:       string(response),
 		Headers: map[string]string{
 			"Content-Type":                "application/json",
 			"Access-Control-Allow-Origin": "*",
@@ -434,10 +630,172 @@ func listUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	}, nil
 }
 
+// UserUpdateRequest represents user profile update data
+type UserUpdateRequest struct {
+	FirstName   *string `json:"firstName,omitempty"`
+	LastName    *string `json:"lastName,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	OldPassword *string `json:"oldPassword,omitempty"`
+	NewPassword *string `json:"newPassword,omitempty"`
+}
+
 func updateUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Validate session
+	user, err := validateSession(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 401,
+			Body:       `{"error": "Unauthorized"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	var updateReq UserUpdateRequest
+	if err := json.Unmarshal([]byte(request.Body), &updateReq); err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Invalid request format"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	collection := db.Database.Collection("users")
+	updateFields := bson.M{"updatedAt": time.Now()}
+
+	// Update basic profile fields
+	if updateReq.FirstName != nil {
+		updateFields["firstName"] = *updateReq.FirstName
+	}
+	if updateReq.LastName != nil {
+		updateFields["lastName"] = *updateReq.LastName
+	}
+
+	// Update name field when first or last name changes
+	if updateReq.FirstName != nil || updateReq.LastName != nil {
+		firstName := user.FirstName
+		lastName := user.LastName
+		if updateReq.FirstName != nil {
+			firstName = *updateReq.FirstName
+		}
+		if updateReq.LastName != nil {
+			lastName = *updateReq.LastName
+		}
+		updateFields["name"] = firstName + " " + lastName
+	}
+
+	// Handle email update (check for uniqueness)
+	if updateReq.Email != nil && *updateReq.Email != user.Email {
+		var existingUser models.User
+		err := collection.FindOne(context.TODO(), bson.M{"email": *updateReq.Email}).Decode(&existingUser)
+		if err == nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: 409,
+				Body:       `{"error": "Email already in use"}`,
+				Headers: map[string]string{
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			}, nil
+		}
+		updateFields["email"] = *updateReq.Email
+	}
+
+	// Handle password update
+	if updateReq.OldPassword != nil && updateReq.NewPassword != nil {
+		// Verify old password
+		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(*updateReq.OldPassword))
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: 400,
+				Body:       `{"error": "Current password is incorrect"}`,
+				Headers: map[string]string{
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			}, nil
+		}
+
+		// Hash new password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*updateReq.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return events.APIGatewayProxyResponse{
+				StatusCode: 500,
+				Body:       `{"error": "Failed to hash new password"}`,
+				Headers: map[string]string{
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			}, nil
+		}
+		updateFields["passwordHash"] = string(hashedPassword)
+	}
+
+	// Update user in database
+	_, err = collection.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": user.ID},
+		bson.M{"$set": updateFields},
+	)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to update user"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Fetch updated user
+	var updatedUser models.User
+	err = collection.FindOne(context.TODO(), bson.M{"_id": user.ID}).Decode(&updatedUser)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to fetch updated user"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Return updated user profile
+	userResponse := UserResponse{
+		ID:          updatedUser.ID.Hex(),
+		Username:    updatedUser.Username,
+		Email:       updatedUser.Email,
+		FirstName:   updatedUser.FirstName,
+		LastName:    updatedUser.LastName,
+		Role:        string(updatedUser.Role),
+		Status:      string(updatedUser.Status),
+		CreatedAt:   updatedUser.CreatedAt,
+		UpdatedAt:   updatedUser.UpdatedAt,
+		LastLoginAt: updatedUser.LastLoginAt,
+	}
+
+	response, err := json.Marshal(userResponse)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to encode response"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
 	return events.APIGatewayProxyResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented yet"}`,
+		StatusCode: 200,
+		Body:       string(response),
 		Headers: map[string]string{
 			"Content-Type":                "application/json",
 			"Access-Control-Allow-Origin": "*",
@@ -446,9 +804,49 @@ func updateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 }
 
 func logoutUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	authHeader := request.Headers["Authorization"]
+	if authHeader == "" {
+		authHeader = request.Headers["authorization"] // Check lowercase
+	}
+
+	if authHeader == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "No authorization header"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Extract token from "Bearer <token>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Invalid authorization header format"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	token := parts[1]
+
+	// Delete session from database
+	sessionCollection := db.Database.Collection("sessions")
+	_, err := sessionCollection.DeleteOne(context.TODO(), bson.M{"token": token})
+	if err != nil {
+		// Even if deletion fails, we should still return success
+		// as the client side logout should still work
+		log.Printf("Failed to delete session: %v", err)
+	}
+
 	return events.APIGatewayProxyResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented yet"}`,
+		StatusCode: 200,
+		Body:       `{"message": "Logged out successfully"}`,
 		Headers: map[string]string{
 			"Content-Type":                "application/json",
 			"Access-Control-Allow-Origin": "*",
@@ -457,9 +855,116 @@ func logoutUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 }
 
 func deleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Validate session and check admin role
+	user, err := validateSession(request)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 401,
+			Body:       `{"error": "Unauthorized"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Only admins can delete users
+	if user.Role != models.RoleAdmin {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 403,
+			Body:       `{"error": "Insufficient permissions"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Get user ID from path parameters
+	userID := request.PathParameters["id"]
+	if userID == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "User ID is required"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Convert string ID to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Invalid user ID format"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Prevent admin from deleting themselves
+	if objectID == user.ID {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Cannot delete your own account"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Check if user exists
+	collection := db.Database.Collection("users")
+	var targetUser models.User
+	err = collection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&targetUser)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 404,
+			Body:       `{"error": "User not found"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Delete user's sessions first
+	sessionCollection := db.Database.Collection("sessions")
+	_, err = sessionCollection.DeleteMany(context.TODO(), bson.M{"userId": objectID})
+	if err != nil {
+		log.Printf("Failed to delete user sessions: %v", err)
+	}
+
+	// Instead of hard delete, we'll soft delete by setting status to suspended
+	// This preserves content relationships and audit trail
+	_, err = collection.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": objectID},
+		bson.M{"$set": bson.M{
+			"status":    models.UserStatusSuspended,
+			"isActive":  false,
+			"updatedAt": time.Now(),
+		}},
+	)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to delete user"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
 	return events.APIGatewayProxyResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented yet"}`,
+		StatusCode: 200,
+		Body:       `{"message": "User deleted successfully"}`,
 		Headers: map[string]string{
 			"Content-Type":                "application/json",
 			"Access-Control-Allow-Origin": "*",
