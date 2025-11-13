@@ -26,12 +26,16 @@ const API_BASE_URL =
 
 interface ContentItem {
   id: string;
-  title: string;
-  content?: string;
+  title?: string;
   question?: string;
+  description?: string;
+  content?: string;
   type: "story" | "question" | "quiz";
   level?: string;
   topics?: string[];
+  storyId?: string;
+  questionType?: string;
+  difficulty?: string;
   status: string;
   createdBy: string;
   createdAt: string;
@@ -76,8 +80,9 @@ const ReviewsPage: React.FC = () => {
   const [filteredItems, setFilteredItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("pending_review");
+  const [selectedStatus, setSelectedStatus] = useState("draft");
   const [selectedType, setSelectedType] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [reviewComment, setReviewComment] = useState("");
   const [newStatus, setNewStatus] = useState("");
@@ -89,33 +94,61 @@ const ReviewsPage: React.FC = () => {
 
   useEffect(() => {
     filterItems();
-  }, [contentItems, selectedStatus, selectedType]);
+  }, [contentItems, selectedStatus, selectedType, searchTerm]);
 
   const loadContentItems = async () => {
     try {
       setLoading(true);
 
-      // Load all content types
+      // Load all content types with proper error handling
       const [storiesRes, questionsRes, quizzesRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/stories-management`),
-        axios.get(`${API_BASE_URL}/questions-management`),
-        axios.get(`${API_BASE_URL}/quiz-management`),
+        axios
+          .get(`${API_BASE_URL}/stories-management`)
+          .catch(() => ({ data: { stories: [] } })),
+        axios
+          .get(`${API_BASE_URL}/questions-management`)
+          .catch(() => ({ data: { questions: [] } })),
+        axios
+          .get(`${API_BASE_URL}/quiz-management`)
+          .catch(() => ({ data: { quizzes: [] } })),
       ]);
 
-      const allItems: ContentItem[] = [
-        ...(storiesRes.data.stories?.map((item: any) => ({
+      console.log("API responses:", {
+        storiesRes: storiesRes.data,
+        questionsRes: questionsRes.data,
+        quizzesRes: quizzesRes.data,
+      });
+
+      const allItems: ContentItem[] = [];
+
+      // Process stories
+      if (storiesRes.data?.stories) {
+        const stories = storiesRes.data.stories.map((item: any) => ({
           ...item,
           type: "story" as const,
-        })) || []),
-        ...(questionsRes.data.questions?.map((item: any) => ({
+        }));
+        allItems.push(...stories);
+      }
+
+      // Process questions
+      if (questionsRes.data?.questions) {
+        const questions = questionsRes.data.questions.map((item: any) => ({
           ...item,
           type: "question" as const,
-        })) || []),
-        ...(quizzesRes.data.quizzes?.map((item: any) => ({
+        }));
+        allItems.push(...questions);
+      }
+
+      // Process quizzes
+      if (quizzesRes.data?.quizzes) {
+        const quizzes = quizzesRes.data.quizzes.map((item: any) => ({
           ...item,
           type: "quiz" as const,
-        })) || []),
-      ];
+        }));
+        allItems.push(...quizzes);
+      }
+
+      console.log("Processed items:", { allItems, count: allItems.length });
 
       setContentItems(allItems);
     } catch (err) {
@@ -129,16 +162,49 @@ const ReviewsPage: React.FC = () => {
   const filterItems = () => {
     let filtered = contentItems;
 
+    // Filter by status
     if (selectedStatus && selectedStatus !== "all") {
       filtered = filtered.filter((item) => item.status === selectedStatus);
     }
 
+    // Filter by type
     if (selectedType && selectedType !== "all") {
       filtered = filtered.filter((item) => item.type === selectedType);
     }
 
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter((item) => {
+        // Handle different content types with their specific fields
+        if (item.type === "story") {
+          return (
+            item.title?.toLowerCase().includes(searchLower) ||
+            item.content?.toLowerCase().includes(searchLower) ||
+            (item as any).topics?.some((topic: string) =>
+              topic.toLowerCase().includes(searchLower)
+            )
+          );
+        } else if (item.type === "question") {
+          return (
+            (item as any).question?.toLowerCase().includes(searchLower) ||
+            (item as any).questionType?.toLowerCase().includes(searchLower) ||
+            (item as any).difficulty?.toLowerCase().includes(searchLower)
+          );
+        } else if (item.type === "quiz") {
+          return (
+            item.title?.toLowerCase().includes(searchLower) ||
+            item.description?.toLowerCase().includes(searchLower)
+          );
+        }
+        return false;
+      });
+    }
+
     setFilteredItems(filtered);
   };
+
+  console.log({ filteredItems });
 
   const handleStatusUpdate = async () => {
     if (!selectedItem || !newStatus) {
@@ -230,7 +296,7 @@ const ReviewsPage: React.FC = () => {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="status-filter">Filter by Status</Label>
                 <select
@@ -260,6 +326,17 @@ const ReviewsPage: React.FC = () => {
                   <option value="question">Questions</option>
                   <option value="quiz">Quizzes</option>
                 </select>
+              </div>
+              <div>
+                <Label htmlFor="search-input">Search Content</Label>
+                <input
+                  id="search-input"
+                  type="text"
+                  placeholder="Search by title, content, topics..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
               </div>
               <div className="flex items-end">
                 <Button onClick={loadContentItems} disabled={loading}>
