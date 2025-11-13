@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -44,6 +45,14 @@ func GetDatabase() (*mongo.Database, error) {
 }
 
 func initializeConnection() error {
+	// Load .env file if it exists (for local development)
+	// This will be ignored in production where env vars are set directly
+	err := godotenv.Load()
+	if err != nil {
+		// Don't fail if .env file doesn't exist - this is normal in production
+		fmt.Printf("No .env file found or failed to load (this is normal in production): %v\n", err)
+	}
+
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		uri = "mongodb://localhost:27017"
