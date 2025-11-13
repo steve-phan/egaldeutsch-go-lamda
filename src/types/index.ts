@@ -86,3 +86,54 @@ export interface QuizResultsProps {
   onRetakeQuiz: () => void;
   onReturnToStory: () => void;
 }
+
+// User and Authentication types
+export type UserRole = 'creator' | 'reviewer' | 'admin';
+export type UserStatus = 'active' | 'suspended' | 'pending';
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface RegisterData {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+  preferredRole: 'creator' | 'reviewer';
+}
+
+export interface AuthResponse {
+  token: string;
+  expiresAt: string;
+  user: User;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  hasRole: (role: UserRole) => boolean;
+  hasAnyRole: (roles: UserRole[]) => boolean;
+}
