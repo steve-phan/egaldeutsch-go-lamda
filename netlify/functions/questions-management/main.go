@@ -340,22 +340,17 @@ func deleteQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	}
 
 	collection := db.Database.Collection("questions")
-	update := bson.M{
-		"$set": bson.M{
-			"status":    models.StatusArchived,
-			"updatedAt": time.Now(),
-		},
-	}
-
-	result := collection.FindOneAndUpdate(
+	// In simplified workflow, delete means permanent removal
+	result, err := collection.DeleteOne(
 		context.Background(),
 		bson.M{"_id": objectID},
-		update,
-		options.FindOneAndUpdate().SetReturnDocument(options.After),
 	)
 
-	var archivedQuestion models.Question
-	if err := result.Decode(&archivedQuestion); err != nil {
+	if err != nil {
+		return errorResponse(500, "Failed to delete question")
+	}
+
+	if result.DeletedCount == 0 {
 		return errorResponse(404, "Question not found")
 	}
 

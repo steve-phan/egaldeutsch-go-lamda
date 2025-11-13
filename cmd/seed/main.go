@@ -33,7 +33,7 @@ func seedData() error {
 	// Sample Story 1: A1 Level
 	now := time.Now()
 	adminID := primitive.NewObjectID() // Would be actual admin user ID in real system
-	
+
 	story1 := models.Story{
 		ID:          primitive.NewObjectID(),
 		Title:       "Meine Familie",
@@ -53,7 +53,7 @@ func seedData() error {
 			{German: "wichtig", English: "important", WordType: "adjective"},
 		},
 		ContentMetadata: models.ContentMetadata{
-			Status:      models.StatusActive,
+			Status:      models.StatusPublished,
 			CreatedBy:   adminID,
 			CreatedAt:   now,
 			UpdatedAt:   now,
@@ -74,7 +74,7 @@ func seedData() error {
 
 	// Sample Questions for Story 1
 	questionMetadata := models.ContentMetadata{
-		Status:      models.StatusActive,
+		Status:      models.StatusPublished,
 		CreatedBy:   adminID,
 		CreatedAt:   now,
 		UpdatedAt:   now,

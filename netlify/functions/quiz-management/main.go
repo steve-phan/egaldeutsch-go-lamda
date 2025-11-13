@@ -311,21 +311,17 @@ func deleteQuiz(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	}
 
 	collection := db.Database.Collection("quizzes")
-	update := bson.M{
-		"$set": bson.M{
-			"status":    models.StatusArchived,
-			"updatedAt": time.Now(),
-		},
-	}
-
-	result := collection.FindOneAndUpdate(
+	// In simplified workflow, delete means permanent removal
+	result, err := collection.DeleteOne(
 		context.Background(),
 		bson.M{"_id": objectID},
-		update,
 	)
 
-	var archivedQuiz models.Quiz
-	if err := result.Decode(&archivedQuiz); err != nil {
+	if err != nil {
+		return errorResponse(500, "Failed to delete quiz")
+	}
+
+	if result.DeletedCount == 0 {
 		return errorResponse(404, "Quiz not found")
 	}
 
@@ -360,7 +356,7 @@ func autoGenerateQuiz(request events.APIGatewayProxyRequest) (events.APIGatewayP
 	// Build filter for questions
 	filter := bson.M{
 		"storyId": storyID,
-		"status":  models.StatusActive,
+		"status":  models.StatusPublished,
 	}
 
 	if len(autoReq.QuestionTypes) > 0 {
@@ -599,11 +595,11 @@ func submitQuiz(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 		}, nil
 	}
 
-	// Check if quiz is active
-	if quiz.Status != models.StatusActive {
+	// Check if quiz is published and available
+	if quiz.Status != models.StatusPublished {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
-			Body:       `{"error": "Quiz is not active"}`,
+			Body:       `{"error": "Quiz is not published"}`,
 			Headers: map[string]string{
 				"Content-Type":                "application/json",
 				"Access-Control-Allow-Origin": "*",
