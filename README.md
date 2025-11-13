@@ -12,14 +12,30 @@ A serverless learning platform for German language learners. Read stories and te
 
 ## Features
 
-- 📖 Read German stories at different difficulty levels
+- 📖 Read German stories at different difficulty levels (A1-C2 CEFR)
 - ❓ Take quizzes to test comprehension
 - 📊 View quiz results and scores
+- 🤖 **AI-Powered Content Generation** - Auto-generate questions and quizzes using OpenAI GPT-4o
+- 👥 Multi-user system with role-based access (Admin, Reviewer, Creator)
+- 📝 Content workflow with draft, preview, ready, and published states
 - 🎨 Modern, responsive UI with production-grade atom components
 - 🎨 Global theme system with light/dark mode support
 - ♿ Accessible components following WCAG guidelines
 - 🔧 Health monitoring with `/api/health` endpoint
 - ⚡ Optimized MongoDB connection pooling for serverless
+
+## AI Content Generation
+
+This platform includes an intelligent AI-powered content generation system that uses OpenAI's GPT-4o model to automatically create high-quality German learning materials.
+
+**Key Features:**
+- Generate 8-12 contextually relevant questions per story
+- Automatic quiz metadata generation
+- Support for comprehension, vocabulary, and grammar questions
+- CEFR level-appropriate content (A1-C2)
+- Draft status workflow for admin review
+
+**For detailed setup and usage instructions, see [AI_GENERATION_GUIDE.md](./AI_GENERATION_GUIDE.md)**
 
 ## UI Component System
 
@@ -144,11 +160,26 @@ go mod download
 3. Set up environment variables:
    Create a `.env` file in the root directory:
 
+```bash
+# Copy the example file
+cp .env.example .env
 ```
+
+Edit `.env` with your configuration:
+
+```env
+# MongoDB Configuration
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=egaldeutsch
+
+# OpenAI Configuration (Required for AI Generation)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Application Settings
 GATSBY_API_URL=http://localhost:8888/.netlify/functions
 ```
+
+**Note:** Get your OpenAI API key from https://platform.openai.com/api-keys
 
 For Netlify deployment, add these as environment variables in the Netlify dashboard.
 
