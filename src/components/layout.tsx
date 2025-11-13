@@ -2,13 +2,18 @@ import React from "react";
 import { Link } from "gatsby";
 import "../styles/global.css";
 import { Separator } from "./ui";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { useAuth } from "../contexts/AuthContext";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { isAuthenticated, user, logout } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card shadow-sm border-b border-border">
@@ -20,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               🇩🇪 EgalDeutsch
             </Link>
-            <nav className="flex space-x-6">
+            <nav className="flex items-center space-x-6">
               <Link
                 to="/"
                 className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
@@ -35,6 +40,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               >
                 About
               </Link>
+              {isAuthenticated && user ? (
+                <>
+                  <Link
+                    to="/profile"
+                    className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
+                    activeClassName="text-primary bg-primary/10"
+                  >
+                    <span>{user.firstName}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {user.role}
+                    </Badge>
+                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={logout}
+                    className="text-sm"
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/auth/login">
+                    <Button variant="ghost" size="sm">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link to="/auth/register">
+                    <Button size="sm">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         </div>
