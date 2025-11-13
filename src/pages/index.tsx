@@ -137,3 +137,7 @@ const IndexPage: React.FC = () => {
 };
 
 export default IndexPage;
+
+export const Head = () => (
+  <title>EgalDeutsch - Learn German Through Stories</title>
+);

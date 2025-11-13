@@ -92,23 +92,24 @@ export class TestDatabaseSetup {
       try {
         // Register user
         const registerResponse = await axios.post(
-          `${API_BASE_URL}/user-management`,
+          `${API_BASE_URL}/user-management/register`,
           {
-            action: "register",
+            username: userData.email.split("@")[0], // Use email prefix as username
             email: userData.email,
             password: userData.password,
-            name: userData.name,
-            role: userData.role,
+            firstName: userData.name.split(" ")[0] || userData.name,
+            lastName: userData.name.split(" ")[1] || "User",
+            preferredRole:
+              userData.role === "admin" ? "creator" : userData.role,
           }
         );
 
         if (registerResponse.status === 201) {
           // Login to get token
           const loginResponse = await axios.post(
-            `${API_BASE_URL}/user-management`,
+            `${API_BASE_URL}/user-management/login`,
             {
-              action: "login",
-              email: userData.email,
+              username: userData.email.split("@")[0],
               password: userData.password,
             }
           );
@@ -126,10 +127,9 @@ export class TestDatabaseSetup {
           // User already exists, try to login
           try {
             const loginResponse = await axios.post(
-              `${API_BASE_URL}/user-management`,
+              `${API_BASE_URL}/user-management/login`,
               {
-                action: "login",
-                email: userData.email,
+                username: userData.email.split("@")[0],
                 password: userData.password,
               }
             );
@@ -157,6 +157,11 @@ export class TestDatabaseSetup {
    * Create test stories with different statuses
    */
   private async createTestStories(): Promise<void> {
+    if (!this.context.users.creator?.token) {
+      console.log("No creator token available, skipping story creation");
+      return;
+    }
+
     const creatorToken = this.context.users.creator.token;
 
     for (const [key, storyData] of Object.entries(testStories)) {
@@ -188,6 +193,11 @@ export class TestDatabaseSetup {
    * Create test questions linked to stories
    */
   private async createTestQuestions(): Promise<void> {
+    if (!this.context.users.creator?.token) {
+      console.log("No creator token available, skipping question creation");
+      return;
+    }
+
     const creatorToken = this.context.users.creator.token;
     const storyIds = Object.values(this.context.stories).map(
       (story: any) => story.id
@@ -234,6 +244,11 @@ export class TestDatabaseSetup {
    * Create test quizzes
    */
   private async createTestQuizzes(): Promise<void> {
+    if (!this.context.users.creator?.token) {
+      console.log("No creator token available, skipping quiz creation");
+      return;
+    }
+
     const creatorToken = this.context.users.creator.token;
 
     for (const [key, quizData] of Object.entries(testQuizzes)) {
@@ -280,6 +295,11 @@ export class TestDatabaseSetup {
   }
 
   private async deleteTestStories(): Promise<void> {
+    if (!this.context.users.admin?.token) {
+      console.log("No admin token available, skipping story cleanup");
+      return;
+    }
+
     const adminToken = this.context.users.admin.token;
 
     for (const [key, story] of Object.entries(this.context.stories)) {
@@ -305,6 +325,11 @@ export class TestDatabaseSetup {
   }
 
   private async deleteTestQuestions(): Promise<void> {
+    if (!this.context.users.admin?.token) {
+      console.log("No admin token available, skipping question cleanup");
+      return;
+    }
+
     const adminToken = this.context.users.admin.token;
 
     for (const [difficulty, questions] of Object.entries(
@@ -334,6 +359,11 @@ export class TestDatabaseSetup {
   }
 
   private async deleteTestQuizzes(): Promise<void> {
+    if (!this.context.users.admin?.token) {
+      console.log("No admin token available, skipping quiz cleanup");
+      return;
+    }
+
     const adminToken = this.context.users.admin.token;
 
     for (const [key, quiz] of Object.entries(this.context.quizzes)) {
