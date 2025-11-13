@@ -86,8 +86,8 @@ func getAllStories(ctx context.Context, headers map[string]string) (events.APIGa
 		}, nil
 	}
 
-	// Only fetch active stories
-	filter := bson.M{"isActive": true}
+	// Only fetch published stories
+	filter := bson.M{"status": "published"}
 	cursor, err := storiesCollection.Find(ctx, filter)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -154,14 +154,14 @@ func getStoryByID(ctx context.Context, storyID string, headers map[string]string
 	}
 
 	var story models.Story
-	filter := bson.M{"_id": id, "isActive": true}
+	filter := bson.M{"_id": id, "status": "published"}
 	err = storiesCollection.FindOne(ctx, filter).Decode(&story)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusNotFound,
 				Headers:    headers,
-				Body:       `{"success": false, "error": "Story not found or not active"}`,
+				Body:       `{"success": false, "error": "Story not found or not published"}`,
 			}, nil
 		}
 		return events.APIGatewayProxyResponse{

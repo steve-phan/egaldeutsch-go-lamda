@@ -2,7 +2,7 @@ import React from "react";
 import { ContentCard } from "../molecules/ContentCard";
 import { LoadingSpinner } from "../atoms/LoadingSpinner";
 import { EmptyState } from "../atoms/EmptyState";
-import { ContentItem } from "../../types/content";
+import { ContentItem, ContentStatus } from "../../types/content";
 
 interface ContentReviewListProps {
   contents: ContentItem[];
@@ -14,18 +14,14 @@ interface ContentReviewListProps {
 
 const getNextActions = (currentStatus: string): string[] => {
   switch (currentStatus) {
-    case "draft":
-      return ["pending_review"];
-    case "pending_review":
-      return ["approved", "rejected"];
-    case "approved":
-      return ["active", "rejected"];
-    case "active":
-      return ["inactive", "archived"];
-    case "inactive":
-      return ["active", "archived"];
-    case "rejected":
-      return ["pending_review", "archived"];
+    case ContentStatus.DRAFT:
+      return [ContentStatus.PREVIEW];
+    case ContentStatus.PREVIEW:
+      return [ContentStatus.READY, ContentStatus.DRAFT];
+    case ContentStatus.READY:
+      return [ContentStatus.PUBLISHED, ContentStatus.DRAFT];
+    case ContentStatus.PUBLISHED:
+      return [ContentStatus.DRAFT];
     default:
       return [];
   }
@@ -43,7 +39,9 @@ export const ContentReviewList: React.FC<ContentReviewListProps> = ({
   }
 
   if (contents.length === 0) {
-    return <EmptyState message="No content items found for the selected filters." />;
+    return (
+      <EmptyState message="No content items found for the selected filters." />
+    );
   }
 
   return (

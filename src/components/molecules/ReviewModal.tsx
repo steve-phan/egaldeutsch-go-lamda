@@ -9,7 +9,7 @@ import {
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { ContentItem, ReviewData } from "../../types/content";
+import { ContentItem, ReviewData, ContentStatus } from "../../types/content";
 
 interface ReviewModalProps {
   content: ContentItem | null;
@@ -19,26 +19,22 @@ interface ReviewModalProps {
 }
 
 const CONTENT_STATUSES = [
-  { value: "draft", label: "Draft" },
-  { value: "preview", label: "Preview" },
-  { value: "ready", label: "Ready" },
-  { value: "published", label: "Published" },
+  { value: ContentStatus.DRAFT, label: "Draft" },
+  { value: ContentStatus.PREVIEW, label: "Preview" },
+  { value: ContentStatus.READY, label: "Ready" },
+  { value: ContentStatus.PUBLISHED, label: "Published" },
 ];
 
 const getNextActions = (currentStatus: string): string[] => {
   switch (currentStatus) {
-    case "draft":
-      return ["pending_review"];
-    case "pending_review":
-      return ["approved", "rejected"];
-    case "approved":
-      return ["active", "rejected"];
-    case "active":
-      return ["inactive", "archived"];
-    case "inactive":
-      return ["active", "archived"];
-    case "rejected":
-      return ["pending_review", "archived"];
+    case ContentStatus.DRAFT:
+      return [ContentStatus.PREVIEW];
+    case ContentStatus.PREVIEW:
+      return [ContentStatus.READY, ContentStatus.DRAFT];
+    case ContentStatus.READY:
+      return [ContentStatus.PUBLISHED, ContentStatus.DRAFT];
+    case ContentStatus.PUBLISHED:
+      return [ContentStatus.DRAFT];
     default:
       return [];
   }

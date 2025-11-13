@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"egaldeutsch-serverless/db"
@@ -360,10 +361,38 @@ func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 // updateStoryStatus handles status transitions (submit for review, approve, reject, etc.)
 func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	storyID := request.PathParameters["id"]
+	// Debug: log the request path and parameters
+	fmt.Printf("Request path: %s\n", request.Path)
+	fmt.Printf("Path parameters: %+v\n", request.PathParameters)
+	fmt.Printf("Query parameters: %+v\n", request.QueryStringParameters)
+
+	// Try to get story ID from different sources
+	var storyID string
+
+	// First try path parameters
+	if id, exists := request.PathParameters["id"]; exists && id != "" {
+		storyID = id
+	} else if id, exists := request.QueryStringParameters["id"]; exists && id != "" {
+		// Try query parameters
+		storyID = id
+	} else {
+		// Try to parse from path manually
+		// Path might be like: /.netlify/functions/stories-management/69159f73a354489a4d203f11/status
+		pathParts := strings.Split(strings.Trim(request.Path, "/"), "/")
+		if len(pathParts) >= 4 {
+			storyID = pathParts[3] // Index 3 should be the story ID
+		}
+	}
+
+	fmt.Printf("Extracted story ID: %s\n", storyID)
+
+	if storyID == "" {
+		return errorResponse(400, "Story ID is required")
+	}
+
 	objectID, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return errorResponse(400, "Invalid story ID")
+		return errorResponse(400, "Invalid story ID format")
 	}
 
 	var statusReq StatusUpdateRequest

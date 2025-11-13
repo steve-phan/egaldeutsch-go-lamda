@@ -118,7 +118,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
               ⏱️ {story.readingTime} min read
             </span>
             <span className="flex items-center">
-              🎯 {story.topics.join(", ")}
+              🎯 {story.topics?.join(", ")}
             </span>
           </div>
 
@@ -135,7 +135,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
         {/* Story Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8">
           <div className="prose prose-lg max-w-none">
-            {story.content.split("\n").map((paragraph, index) => (
+            {story.content?.split("\n").map((paragraph, index) => (
               <p key={index} className="mb-4 text-gray-800 leading-relaxed">
                 {paragraph}
               </p>

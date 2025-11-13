@@ -1,5 +1,15 @@
 export type ContentType = "story" | "question" | "quiz";
-export type ContentStatus = "draft" | "preview" | "ready" | "published";
+
+// Content Status Enum - matches backend Go enum
+export enum ContentStatus {
+  DRAFT = "draft",
+  PREVIEW = "preview",
+  READY = "ready",
+  PUBLISHED = "published",
+}
+
+// Legacy type for compatibility
+export type ContentStatusType = "draft" | "preview" | "ready" | "published";
 
 export interface ContentItem {
   id: string;

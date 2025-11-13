@@ -13,6 +13,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import { ContentStatus } from "../../types/content";
 import axios from "axios";
 
 const API_BASE_URL =
@@ -82,21 +83,30 @@ const AdminDashboard: React.FC = () => {
         content: {
           stories: {
             total: stories.length,
-            pending: stories.filter((s: any) => s.status === "pending_review")
-              .length,
-            active: stories.filter((s: any) => s.status === "active").length,
+            pending: stories.filter(
+              (s: any) => s.status === ContentStatus.PREVIEW
+            ).length,
+            active: stories.filter(
+              (s: any) => s.status === ContentStatus.PUBLISHED
+            ).length,
           },
           questions: {
             total: questions.length,
-            pending: questions.filter((q: any) => q.status === "pending_review")
-              .length,
-            active: questions.filter((q: any) => q.status === "active").length,
+            pending: questions.filter(
+              (q: any) => q.status === ContentStatus.PREVIEW
+            ).length,
+            active: questions.filter(
+              (q: any) => q.status === ContentStatus.PUBLISHED
+            ).length,
           },
           quizzes: {
             total: quizzes.length,
-            pending: quizzes.filter((q: any) => q.status === "pending_review")
-              .length,
-            active: quizzes.filter((q: any) => q.status === "active").length,
+            pending: quizzes.filter(
+              (q: any) => q.status === ContentStatus.PREVIEW
+            ).length,
+            active: quizzes.filter(
+              (q: any) => q.status === ContentStatus.PUBLISHED
+            ).length,
           },
         },
       };
