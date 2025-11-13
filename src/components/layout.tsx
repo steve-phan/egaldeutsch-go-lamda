@@ -34,6 +34,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 Stories
               </Link>
               <Link
+                to="/leaderboard"
+                className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                activeClassName="text-primary bg-primary/10"
+              >
+                Leaderboard
+              </Link>
+              <Link
                 to="/about"
                 className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 activeClassName="text-primary bg-primary/10"
@@ -86,6 +93,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <p className="text-muted-foreground text-sm mb-2">
               Learn German through engaging stories and interactive quizzes
             </p>
+            <div className="flex justify-center space-x-6 mb-3">
+              <Link
+                to="/privacy-policy"
+                className="text-muted-foreground text-xs hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms-of-service"
+                className="text-muted-foreground text-xs hover:text-primary transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
             <p className="text-muted-foreground text-xs">
               © {new Date().getFullYear()} EgalDeutsch. Practice makes perfect!
               🚀
