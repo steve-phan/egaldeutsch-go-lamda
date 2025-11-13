@@ -127,13 +127,19 @@ type QuizSubmission struct {
 
 // User represents a system user (creators, reviewers, admins)
 type User struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Email     string             `bson:"email" json:"email"`
-	Name      string             `bson:"name" json:"name"`
-	Role      UserRole           `bson:"role" json:"role"`
-	IsActive  bool               `bson:"isActive" json:"isActive"`
-	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time          `bson:"updatedAt" json:"updatedAt"`
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Username     string             `bson:"username" json:"username"`
+	Email        string             `bson:"email" json:"email"`
+	PasswordHash string             `bson:"passwordHash" json:"-"` // Never include in JSON
+	FirstName    string             `bson:"firstName" json:"firstName"`
+	LastName     string             `bson:"lastName" json:"lastName"`
+	Name         string             `bson:"name" json:"name"` // Computed from FirstName + LastName
+	Role         UserRole           `bson:"role" json:"role"`
+	Status       UserStatus         `bson:"status" json:"status"`
+	IsActive     bool               `bson:"isActive" json:"isActive"` // Backward compatibility
+	LastLoginAt  *time.Time         `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
+	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
+	UpdatedAt    time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
 
 // UserRole represents user permission levels
@@ -143,6 +149,16 @@ const (
 	RoleCreator  UserRole = "creator"
 	RoleReviewer UserRole = "reviewer"
 	RoleAdmin    UserRole = "admin"
+)
+
+// UserStatus represents user account status
+type UserStatus string
+
+const (
+	UserStatusActive    UserStatus = "active"
+	UserStatusInactive  UserStatus = "inactive"
+	UserStatusSuspended UserStatus = "suspended"
+	UserStatusPending   UserStatus = "pending"
 )
 
 // Dashboard represents dashboard statistics
