@@ -12,7 +12,7 @@ export interface Story {
   level: string; // A1, A2, B1, B2, C1, C2
   wordCount: number;
   readingTime: number; // Estimated reading time in minutes
-  topic: string; // e.g., "Family", "Travel", "Food"
+  topics: string[]; // e.g., ["Family", "Travel", "Food"]
   vocabulary: VocabularyWord[];
   summary: string;
   isActive: boolean;
@@ -88,8 +88,8 @@ export interface QuizResultsProps {
 }
 
 // User and Authentication types
-export type UserRole = 'creator' | 'reviewer' | 'admin';
-export type UserStatus = 'active' | 'suspended' | 'pending';
+export type UserRole = "creator" | "reviewer" | "admin";
+export type UserStatus = "active" | "suspended" | "pending";
 
 export interface User {
   id: string;
@@ -117,7 +117,7 @@ export interface RegisterData {
   confirmPassword: string;
   firstName: string;
   lastName: string;
-  preferredRole: 'creator' | 'reviewer';
+  preferredRole: "creator" | "reviewer";
 }
 
 export interface AuthResponse {

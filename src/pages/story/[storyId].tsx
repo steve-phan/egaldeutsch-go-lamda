@@ -117,7 +117,9 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
             <span className="flex items-center">
               ⏱️ {story.readingTime} min read
             </span>
-            <span className="flex items-center">🎯 {story.topic}</span>
+            <span className="flex items-center">
+              🎯 {story.topics.join(", ")}
+            </span>
           </div>
 
           {story.summary && (

@@ -114,7 +114,7 @@ const IndexPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-purple-600">
-                        {new Set(stories.map((s) => s.topic)).size}
+                        {new Set(stories.flatMap((s) => s.topics)).size}
                       </div>
                       <div className="text-sm text-gray-600">Topics</div>
                     </div>

@@ -34,13 +34,17 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
             <span className="flex items-center">
               ⏱️ {story.readingTime} min read
             </span>
-            <span className="flex items-center">🎯 {story.topic}</span>
+            <span className="flex items-center">
+              🎯 {story.topics.join(", ")}
+            </span>
           </div>
         </div>
 
         {story.vocabulary && story.vocabulary.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs text-muted-foreground mb-2">Key vocabulary:</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              Key vocabulary:
+            </p>
             <div className="flex flex-wrap gap-1">
               {story.vocabulary.slice(0, 3).map((word, index) => (
                 <Badge
@@ -52,7 +56,10 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
                 </Badge>
               ))}
               {story.vocabulary.length > 3 && (
-                <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                <Badge
+                  variant="secondary"
+                  className="bg-muted text-muted-foreground"
+                >
                   +{story.vocabulary.length - 3} more
                 </Badge>
               )}
