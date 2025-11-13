@@ -4,7 +4,8 @@ A serverless learning platform for German language learners. Read stories and te
 
 ## Tech Stack
 
-- **Frontend**: Gatsby.js with React and TailwindCSS
+- **Frontend**: Gatsby.js with React, TypeScript, and TailwindCSS
+- **UI Components**: Production-grade atom components with shadcn/ui
 - **Backend**: Go Lambda Functions (Netlify Functions)
 - **Database**: MongoDB
 - **Deployment**: Netlify
@@ -14,9 +15,51 @@ A serverless learning platform for German language learners. Read stories and te
 - 📖 Read German stories at different difficulty levels
 - ❓ Take quizzes to test comprehension
 - 📊 View quiz results and scores
-- 🎨 Modern, responsive UI with TailwindCSS
+- 🎨 Modern, responsive UI with production-grade atom components
+- 🎨 Global theme system with light/dark mode support
+- ♿ Accessible components following WCAG guidelines
 - 🔧 Health monitoring with `/api/health` endpoint
 - ⚡ Optimized MongoDB connection pooling for serverless
+
+## UI Component System
+
+This project features a production-grade UI component library built with:
+
+- **Tailwind CSS** for utility-first styling
+- **shadcn/ui principles** for consistent, reusable components
+- **Radix UI primitives** for accessibility
+- **CSS Variables** for flexible theming
+
+### Available Components
+
+- Button (7 variants, 4 sizes)
+- Card (with Header, Title, Description, Content, Footer)
+- Badge (6 variants for status indicators)
+- Input & Textarea (accessible form components)
+- Label (semantic form labels)
+- Alert (4 variants for notifications)
+- Separator (horizontal/vertical dividers)
+
+### Component Documentation
+
+- **[Component Library Documentation](./COMPONENT_LIBRARY.md)** - Comprehensive guide with examples
+- **[Live Showcase](/showcase)** - Interactive demonstration of all components
+
+### Quick Example
+
+```tsx
+import { Button, Card, CardHeader, CardTitle, CardContent } from "@/components/ui";
+
+<Card>
+  <CardHeader>
+    <CardTitle>German Story</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p>Learn through engaging content...</p>
+    <Button variant="default">Read Story</Button>
+  </CardContent>
+</Card>
+```
 
 ## Serverless MongoDB Optimization
 
