@@ -187,6 +187,11 @@ const AIGenerationPage: React.FC = () => {
                 ⚠️ All AI-generated content starts in <strong>draft</strong>{" "}
                 status and requires admin review before publishing
               </p>
+              <p className="pt-2 border-t border-blue-200">
+                📝 <strong>Note:</strong> Stories with existing AI-generated
+                questions are automatically filtered out to prevent duplicate
+                generation
+              </p>
             </CardContent>
           </Card>
         </div>

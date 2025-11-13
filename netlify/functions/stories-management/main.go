@@ -34,20 +34,21 @@ type StoryRequest struct {
 
 // StoryResponse represents the response structure for stories
 type StoryResponse struct {
-	ID          string                  `json:"id"`
-	Title       string                  `json:"title"`
-	Content     string                  `json:"content"`
-	Level       string                  `json:"level"`
-	WordCount   int                     `json:"wordCount"`
-	ReadingTime int                     `json:"readingTime"`
-	Topics      []string                `json:"topics"`
-	Summary     string                  `json:"summary"`
-	Vocabulary  []models.VocabularyWord `json:"vocabulary"`
-	Status      models.ContentStatus    `json:"status"`
-	CreatedBy   string                  `json:"createdBy"`
-	CreatedAt   time.Time               `json:"createdAt"`
-	UpdatedAt   time.Time               `json:"updatedAt"`
-	Version     int                     `json:"version"`
+	ID                     string                  `json:"id"`
+	Title                  string                  `json:"title"`
+	Content                string                  `json:"content"`
+	Level                  string                  `json:"level"`
+	WordCount              int                     `json:"wordCount"`
+	ReadingTime            int                     `json:"readingTime"`
+	Topics                 []string                `json:"topics"`
+	Summary                string                  `json:"summary"`
+	Vocabulary             []models.VocabularyWord `json:"vocabulary"`
+	Status                 models.ContentStatus    `json:"status"`
+	IsAIQuestionsGenerated bool                    `json:"isAIQuestionsGenerated"`
+	CreatedBy              string                  `json:"createdBy"`
+	CreatedAt              time.Time               `json:"createdAt"`
+	UpdatedAt              time.Time               `json:"updatedAt"`
+	Version                int                     `json:"version"`
 }
 
 // StatusUpdateRequest represents status transition requests
@@ -542,20 +543,21 @@ func deleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 func convertToStoryResponse(story models.Story) StoryResponse {
 	return StoryResponse{
-		ID:          story.ID.Hex(),
-		Title:       story.Title,
-		Content:     story.Content,
-		Level:       story.Level,
-		WordCount:   story.WordCount,
-		ReadingTime: story.ReadingTime,
-		Topics:      story.Topics,
-		Summary:     story.Summary,
-		Vocabulary:  story.Vocabulary,
-		Status:      story.Status,
-		CreatedBy:   story.CreatedBy.Hex(),
-		CreatedAt:   story.CreatedAt,
-		UpdatedAt:   story.UpdatedAt,
-		Version:     story.Version,
+		ID:                     story.ID.Hex(),
+		Title:                  story.Title,
+		Content:                story.Content,
+		Level:                  story.Level,
+		WordCount:              story.WordCount,
+		ReadingTime:            story.ReadingTime,
+		Topics:                 story.Topics,
+		Summary:                story.Summary,
+		Vocabulary:             story.Vocabulary,
+		Status:                 story.Status,
+		IsAIQuestionsGenerated: story.IsAIQuestionsGenerated,
+		CreatedBy:              story.CreatedBy.Hex(),
+		CreatedAt:              story.CreatedAt,
+		UpdatedAt:              story.UpdatedAt,
+		Version:                story.Version,
 	}
 }
 
