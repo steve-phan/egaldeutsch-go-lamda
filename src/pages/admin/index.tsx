@@ -368,7 +368,7 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {/* Quick Links */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <Link to="/stories" className="block">
             <Card className="hover:shadow-md transition-shadow h-full">
               <CardContent className="pt-6 text-center">
@@ -387,6 +387,28 @@ const AdminDashboard: React.FC = () => {
                 <div className="text-2xl mb-2">✍️</div>
                 <h3 className="font-semibold">Create Story</h3>
                 <p className="text-sm text-muted-foreground">Add new content</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/questions/create" className="block">
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardContent className="pt-6 text-center">
+                <div className="text-2xl mb-2">❓</div>
+                <h3 className="font-semibold">Create Questions</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add quiz questions
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/quiz/create" className="block">
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardContent className="pt-6 text-center">
+                <div className="text-2xl mb-2">🧩</div>
+                <h3 className="font-semibold">Create Quiz</h3>
+                <p className="text-sm text-muted-foreground">Build new quiz</p>
               </CardContent>
             </Card>
           </Link>

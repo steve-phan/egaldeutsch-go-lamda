@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"egaldeutsch-serverless/db"
@@ -55,22 +54,22 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	// Route requests
-	path := req.Path
 	method := req.HTTPMethod
 
-	// Extract story ID from path
-	pathParts := strings.Split(strings.Trim(path, "/"), "/")
+	// Get story ID from query parameters
 	storyID := ""
-	action := ""
-	if len(pathParts) > 1 {
-		storyID = pathParts[1]
+	if id, exists := req.QueryStringParameters["story_id"]; exists && id != "" {
+		storyID = id
 	}
-	if len(pathParts) > 2 {
-		action = pathParts[2]
+
+	// Check for submit action
+	action := ""
+	if act, exists := req.QueryStringParameters["action"]; exists && act != "" {
+		action = act
 	}
 
 	switch {
-	case method == "GET" && storyID != "" && action == "":
+	case method == "GET" && storyID != "":
 		return getQuiz(ctx, storyID, headers)
 	case method == "POST" && storyID != "" && action == "submit":
 		return submitQuiz(ctx, storyID, req, headers)

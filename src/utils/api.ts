@@ -34,7 +34,7 @@ export const fetchStories = async (): Promise<Story[]> => {
 export const fetchStoryById = async (storyId: string): Promise<Story> => {
   try {
     const response = await axios.get<StoryResponse>(
-      `${API_BASE_URL}/stories/${storyId}`
+      `${API_BASE_URL}/stories?id=${storyId}`
     );
     if (response.data.success && response.data.data) {
       return response.data.data;
@@ -50,7 +50,7 @@ export const fetchStoryById = async (storyId: string): Promise<Story> => {
 export const fetchQuizByStoryId = async (storyId: string): Promise<Quiz> => {
   try {
     const response = await axios.get<QuizResponse>(
-      `${API_BASE_URL}/quiz/${storyId}`
+      `${API_BASE_URL}/quiz?story_id=${storyId}`
     );
     if (response.data.success && response.data.data) {
       return response.data.data;
@@ -68,7 +68,7 @@ export const submitQuiz = async (
 ): Promise<QuizResult> => {
   try {
     const response = await axios.post<QuizSubmissionResponse>(
-      `${API_BASE_URL}/quiz/${storyId}/submit`,
+      `${API_BASE_URL}/quiz?story_id=${storyId}&action=submit`,
       { answers }
     );
     if (response.data.success && response.data.data) {
