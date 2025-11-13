@@ -26,3 +26,5 @@ export { Label } from "./label";
 export { Alert, AlertTitle, AlertDescription } from "./alert";
 export { Separator } from "./separator";
 export { Textarea, type TextareaProps } from "./textarea";
+export { DropdownMenu, DropdownMenuItem } from "./dropdown-menu";
+export { MobileMenu, MobileMenuItem, MobileMenuGroup } from "./mobile-menu";
