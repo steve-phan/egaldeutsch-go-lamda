@@ -7,17 +7,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ContentStatus represents the status of content in the approval workflow
+// ContentStatus represents the status of content in the simplified workflow
 type ContentStatus string
 
 const (
-	StatusDraft         ContentStatus = "draft"
-	StatusPendingReview ContentStatus = "pending_review"
-	StatusApproved      ContentStatus = "approved"
-	StatusActive        ContentStatus = "active"
-	StatusInactive      ContentStatus = "inactive"
-	StatusRejected      ContentStatus = "rejected"
-	StatusArchived      ContentStatus = "archived"
+	StatusDraft     ContentStatus = "draft"     // Creator can edit, not visible to public
+	StatusPreview   ContentStatus = "preview"   // Creator submitted for review, ready for admin
+	StatusReady     ContentStatus = "ready"     // Admin approved, ready to publish
+	StatusPublished ContentStatus = "published" // Live content, visible to public
 )
 
 // ReviewComment represents a comment in the review process
@@ -113,10 +110,10 @@ type QuizSubmission struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	QuizID         primitive.ObjectID `bson:"quizId" json:"quizId"`
 	StoryID        primitive.ObjectID `bson:"storyId" json:"storyId"`
-	UserID         primitive.ObjectID `bson:"userId" json:"userId"`   // User who submitted
+	UserID         primitive.ObjectID `bson:"userId" json:"userId"`                         // User who submitted
 	Username       string             `bson:"username,omitempty" json:"username,omitempty"` // Denormalized for leaderboard
-	Answers        []int              `bson:"answers" json:"answers"` // Array of selected answer indices
-	Score          int                `bson:"score" json:"score"`     // Number of correct answers
+	Answers        []int              `bson:"answers" json:"answers"`                       // Array of selected answer indices
+	Score          int                `bson:"score" json:"score"`                           // Number of correct answers
 	TotalQuestions int                `bson:"totalQuestions" json:"totalQuestions"`
 	TotalPoints    int                `bson:"totalPoints" json:"totalPoints"`
 	EarnedPoints   int                `bson:"earnedPoints" json:"earnedPoints"`
@@ -207,13 +204,10 @@ type ContentListFilter struct {
 // CanTransitionTo checks if content can transition to target status
 func (s ContentStatus) CanTransitionTo(target ContentStatus) bool {
 	validTransitions := map[ContentStatus][]ContentStatus{
-		StatusDraft:         {StatusPendingReview, StatusArchived},
-		StatusPendingReview: {StatusApproved, StatusRejected, StatusArchived},
-		StatusApproved:      {StatusActive, StatusInactive, StatusArchived},
-		StatusActive:        {StatusInactive, StatusArchived},
-		StatusInactive:      {StatusActive, StatusArchived},
-		StatusRejected:      {StatusDraft, StatusArchived},
-		StatusArchived:      {}, // Cannot transition from archived
+		StatusDraft:     {StatusPreview},                // Creator can submit for review
+		StatusPreview:   {StatusDraft, StatusReady},     // Admin can approve or send back to draft
+		StatusReady:     {StatusPublished, StatusDraft}, // Admin can publish or send back to draft
+		StatusPublished: {StatusReady},                  // Admin can unpublish (back to ready)
 	}
 
 	allowed, exists := validTransitions[s]

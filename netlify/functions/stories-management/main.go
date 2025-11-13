@@ -399,17 +399,18 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 	// Set appropriate timestamp based on status
 	userID := primitive.NewObjectID() // Mock user ID
 	switch statusReq.Status {
-	case models.StatusPendingReview:
+	case models.StatusPreview:
 		// Story submitted for review
-	case models.StatusApproved:
+	case models.StatusReady:
 		update["$set"].(bson.M)["reviewedBy"] = userID
 		update["$set"].(bson.M)["reviewedAt"] = now
 		update["$set"].(bson.M)["approvedAt"] = now
-	case models.StatusRejected:
+	case models.StatusPublished:
+		update["$set"].(bson.M)["activatedAt"] = now
+	case models.StatusDraft:
+		// Story sent back to draft
 		update["$set"].(bson.M)["reviewedBy"] = userID
 		update["$set"].(bson.M)["reviewedAt"] = now
-	case models.StatusActive:
-		update["$set"].(bson.M)["activatedAt"] = now
 	}
 
 	// Add comment if provided
@@ -458,22 +459,17 @@ func deleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	}
 
 	collection := db.Database.Collection("stories")
-	update := bson.M{
-		"$set": bson.M{
-			"status":    models.StatusArchived,
-			"updatedAt": time.Now(),
-		},
-	}
-
-	result := collection.FindOneAndUpdate(
+	// In simplified workflow, delete means permanent removal
+	result, err := collection.DeleteOne(
 		context.Background(),
 		bson.M{"_id": objectID},
-		update,
-		options.FindOneAndUpdate().SetReturnDocument(options.After),
 	)
 
-	var archivedStory models.Story
-	if err := result.Decode(&archivedStory); err != nil {
+	if err != nil {
+		return errorResponse(500, "Failed to delete story")
+	}
+
+	if result.DeletedCount == 0 {
 		return errorResponse(404, "Story not found")
 	}
 
@@ -508,10 +504,12 @@ func convertToStoryResponse(story models.Story) StoryResponse {
 
 func getCommentType(status models.ContentStatus) string {
 	switch status {
-	case models.StatusApproved:
+	case models.StatusReady:
 		return "approval_note"
-	case models.StatusRejected:
-		return "rejection_reason"
+	case models.StatusDraft:
+		return "revision_note"
+	case models.StatusPublished:
+		return "publication_note"
 	default:
 		return "feedback"
 	}

@@ -51,3 +51,7 @@ go.work
 
 # Docs
 docs/
+
+# Playwright
+playwright-report/
+test-results/

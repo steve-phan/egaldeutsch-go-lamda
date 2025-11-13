@@ -10,7 +10,15 @@
     "type-check": "tsc --noEmit",
     "dev": "netlify dev",
     "dev:functions": "netlify functions:serve",
-    "build:functions": "go build -o netlify/functions/stories/stories ./netlify/functions/stories && go build -o netlify/functions/quiz/quiz ./netlify/functions/quiz && go build -o netlify/functions/health/health ./netlify/functions/health"
+    "build:functions": "go build -o netlify/functions/stories/stories ./netlify/functions/stories && go build -o netlify/functions/quiz/quiz ./netlify/functions/quiz && go build -o netlify/functions/health/health ./netlify/functions/health",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:creator": "playwright test tests/e2e/creator-workflow.spec.ts",
+    "test:e2e:admin": "playwright test tests/e2e/admin-workflow.spec.ts",
+    "test:e2e:lifecycle": "playwright test tests/e2e/complete-lifecycle.spec.ts",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -29,6 +37,7 @@
   },
   "devDependencies": {
     "@netlify/plugin-gatsby": "^3.8.4",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.45",

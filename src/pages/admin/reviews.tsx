@@ -55,22 +55,15 @@ interface ContentItem {
 const CONTENT_STATUSES = [
   { value: "draft", label: "Draft", color: "bg-gray-100 text-gray-800" },
   {
-    value: "pending_review",
-    label: "Pending Review",
+    value: "preview",
+    label: "Preview",
     color: "bg-yellow-100 text-yellow-800",
   },
+  { value: "ready", label: "Ready", color: "bg-green-100 text-green-800" },
   {
-    value: "approved",
-    label: "Approved",
-    color: "bg-green-100 text-green-800",
-  },
-  { value: "active", label: "Active", color: "bg-blue-100 text-blue-800" },
-  { value: "inactive", label: "Inactive", color: "bg-gray-100 text-gray-600" },
-  { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-800" },
-  {
-    value: "archived",
-    label: "Archived",
-    color: "bg-purple-100 text-purple-800",
+    value: "published",
+    label: "Published",
+    color: "bg-blue-100 text-blue-800",
   },
 ];
 
@@ -80,7 +73,7 @@ const ReviewsPage: React.FC = () => {
   const [filteredItems, setFilteredItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("draft");
+  const [selectedStatus, setSelectedStatus] = useState("preview");
   const [selectedType, setSelectedType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
