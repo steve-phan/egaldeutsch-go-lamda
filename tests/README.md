@@ -18,6 +18,18 @@ This project uses Playwright for comprehensive end-to-end testing of the German 
 - `tests/e2e/question-quiz-workflows.spec.ts` - Question and quiz management tests
 - `tests/e2e/error-handling.spec.ts` - Error handling and edge case tests
 
+#### Role-Based CRUD Tests (NEW)
+- `tests/e2e/role-based-crud-workflows.spec.ts` - Comprehensive CRUD testing for all roles (Creator, Reviewer, Admin)
+  - Stories: Create, update, review, publish workflows
+  - Questions: Create, update, link to stories, change difficulty
+  - Quizzes: Create, update settings, preserve associations
+  - Permission enforcement and security boundaries
+- `tests/e2e/cross-role-scenarios.spec.ts` - Multi-role collaboration and edge cases
+  - Complete lifecycle: Creator → Reviewer → Creator → Admin
+  - Multiple reviewers, admin overrides, audit trails
+  - Concurrent operations and conflict handling
+  - Security: Role permission enforcement
+
 ### Fixtures
 
 - `tests/fixtures/testData.ts` - Test data definitions (users, stories, questions, quizzes)
@@ -77,6 +89,8 @@ npm run test:e2e:user-mgmt      # Admin user management
 npm run test:e2e:stories        # Story workflows
 npm run test:e2e:questions      # Question and quiz workflows
 npm run test:e2e:errors         # Error handling
+npm run test:e2e:roles          # Role-based CRUD operations (NEW)
+npm run test:e2e:cross-role     # Cross-role collaboration scenarios (NEW)
 
 # Run tests with Playwright UI mode
 npm run test:e2e:ui
