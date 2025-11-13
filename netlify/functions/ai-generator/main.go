@@ -13,12 +13,26 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/joho/godotenv"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/openai/openai-go/shared"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// init loads environment variables from .env file
+func init() {
+	// Try to load .env file from project root (3 levels up from function directory)
+	// This works for local development
+	if err := godotenv.Load("../../../.env"); err != nil {
+		// If that fails, try loading from current directory
+		if err := godotenv.Load(".env"); err != nil {
+			// Silently continue - in production, env vars should be set directly
+			// The "No .env file found" message is expected and normal
+		}
+	}
+}
 
 // QuestionGenerated represents a generated question from OpenAI
 type QuestionGenerated struct {
@@ -49,11 +63,11 @@ type QuestionGenerationResponse struct {
 
 // QuizGenerationResponse represents the OpenAI response for quiz metadata
 type QuizGenerationResponse struct {
-	Title                    string `json:"title"`
-	Description              string `json:"description"`
-	QuizType                 string `json:"quizType"`
-	EstimatedTime            int    `json:"estimatedTime"`
-	PassingScore             int    `json:"passingScore"`
+	Title                    string   `json:"title"`
+	Description              string   `json:"description"`
+	QuizType                 string   `json:"quizType"`
+	EstimatedTime            int      `json:"estimatedTime"`
+	PassingScore             int      `json:"passingScore"`
 	RecommendedQuestionTypes []string `json:"recommendedQuestionTypes"`
 	DifficultyDistribution   struct {
 		Easy   int `json:"easy"`
@@ -72,6 +86,9 @@ type GenerationResult struct {
 }
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	handlerStartTime := time.Now()
+	fmt.Printf("🚀 AI Generator handler started at %v\n", handlerStartTime)
+
 	// Connect to MongoDB
 	if err := db.Connect(); err != nil {
 		return errorResponse(500, "Database connection failed")
@@ -109,6 +126,11 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return errorResponse(404, fmt.Sprintf("Story not found: %v", err))
 	}
 
+	// Check if AI questions have already been generated for questions or both
+	if (generationType == "questions" || generationType == "both") && story.IsAIQuestionsGenerated {
+		return errorResponse(400, "AI questions have already been generated for this story. Use the existing questions instead.")
+	}
+
 	// Check if story is published
 	if story.Status != models.StatusPublished {
 		return errorResponse(400, "Story must be published to generate content")
@@ -121,6 +143,9 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}
 
 	// Route to appropriate generation function
+	fmt.Printf("🚀 Starting generation type: %s for story: %s\n", generationType, story.Title)
+	startTime := time.Now()
+
 	var result GenerationResult
 	switch generationType {
 	case "questions":
@@ -131,9 +156,19 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		result, err = generateBoth(story, apiKey)
 	}
 
+	totalDuration := time.Since(startTime)
+	fmt.Printf("⏱️  Total generation time: %v\n", totalDuration)
+
 	if err != nil {
+		handlerDuration := time.Since(handlerStartTime)
+		fmt.Printf("❌ Generation failed after %v (handler: %v): %v\n", totalDuration, handlerDuration, err)
 		return errorResponse(500, fmt.Sprintf("Generation failed: %v", err))
 	}
+
+	fmt.Printf("✅ Generation completed successfully in %v\n", totalDuration)
+
+	handlerDuration := time.Since(handlerStartTime)
+	fmt.Printf("🏁 Total handler execution time: %v (Netlify timeout: 30s)\n", handlerDuration)
 
 	responseBody, _ := json.Marshal(result)
 	return events.APIGatewayProxyResponse{
@@ -157,6 +192,8 @@ func getStory(storyID primitive.ObjectID) (*models.Story, error) {
 }
 
 func generateQuestions(story *models.Story, apiKey string) (GenerationResult, error) {
+	fmt.Printf("📝 Starting question generation for story: %s\n", story.Title)
+
 	// Build prompt for question generation with JSON format instruction
 	prompt := buildQuestionPrompt(story) + `
 
@@ -186,6 +223,9 @@ Please respond with valid JSON in exactly this format:
 }`
 
 	// Call OpenAI API with simple JSON mode
+	fmt.Printf("🤖 Starting OpenAI API call for questions...\n")
+	openaiStartTime := time.Now()
+
 	client := openai.NewClient(option.WithAPIKey(apiKey))
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -202,9 +242,14 @@ Please respond with valid JSON in exactly this format:
 	}
 
 	completion, err := client.Chat.Completions.New(ctx, params)
+	openaiDuration := time.Since(openaiStartTime)
+
 	if err != nil {
+		fmt.Printf("❌ OpenAI API call failed after %v: %v\n", openaiDuration, err)
 		return GenerationResult{}, fmt.Errorf("OpenAI API call failed: %w", err)
 	}
+
+	fmt.Printf("✅ OpenAI API call completed in %v\n", openaiDuration)
 
 	if len(completion.Choices) == 0 {
 		return GenerationResult{}, fmt.Errorf("no response from OpenAI")
@@ -222,6 +267,12 @@ Please respond with valid JSON in exactly this format:
 		return GenerationResult{}, fmt.Errorf("failed to store questions: %w", err)
 	}
 
+	// Update story to mark AI questions as generated
+	if err := markStoryAIQuestionsGenerated(story.ID); err != nil {
+		// Log error but don't fail the whole operation since questions were stored successfully
+		fmt.Printf("⚠️ Warning: Failed to update story AI flag: %v\n", err)
+	}
+
 	return GenerationResult{
 		Success:        true,
 		Message:        fmt.Sprintf("Successfully generated %d questions", len(questionIDs)),
@@ -231,6 +282,8 @@ Please respond with valid JSON in exactly this format:
 }
 
 func generateQuiz(story *models.Story, apiKey string) (GenerationResult, error) {
+	fmt.Printf("🧩 Starting quiz generation for story: %s\n", story.Title)
+
 	// Build prompt for quiz generation with JSON format instruction
 	prompt := buildQuizPrompt(story) + `
 
@@ -264,10 +317,17 @@ Please respond with valid JSON in exactly this format:
 		},
 	}
 
+	fmt.Printf("🚀 Making OpenAI API call for quiz generation...\n")
+	openaiStartTime := time.Now()
 	completion, err := client.Chat.Completions.New(ctx, params)
+	openaiDuration := time.Since(openaiStartTime)
+
 	if err != nil {
+		fmt.Printf("❌ OpenAI API call failed after %v: %v\n", openaiDuration, err)
 		return GenerationResult{}, fmt.Errorf("OpenAI API call failed: %w", err)
 	}
+
+	fmt.Printf("✅ OpenAI API call completed in %v\n", openaiDuration)
 
 	if len(completion.Choices) == 0 {
 		return GenerationResult{}, fmt.Errorf("no response from OpenAI")
@@ -286,7 +346,7 @@ Please respond with valid JSON in exactly this format:
 	}
 
 	if len(existingQuestions) == 0 {
-		return GenerationResult{}, fmt.Errorf("no questions available for quiz. Generate questions first")
+		return GenerationResult{}, fmt.Errorf("no questions available for this story. Please generate AI questions first using the question generation feature")
 	}
 
 	// Store quiz in database
@@ -339,7 +399,7 @@ Existing Vocabulary: %s
 Word Count: %d
 
 GENERATION REQUIREMENTS:
-- Create 8-12 diverse questions covering the story content
+- Create 2-4 diverse questions covering the story content
 - Ensure questions test genuine comprehension, not just recall
 - Vocabulary questions should use words actually present in the story
 - Grammar questions should focus on structures used in the text
@@ -386,7 +446,7 @@ QUIZ GENERATION REQUIREMENTS:
 Create a complete quiz structure with:
 - Engaging title related to story content
 - Clear description explaining what students will be assessed on
-- Appropriate time estimate for completion (5-30 minutes)
+- Appropriate time estimate for completion (5-10 minutes)
 - Recommended question type distribution
 - Balanced difficulty progression
 - Passing score between 50-90%%
@@ -554,6 +614,31 @@ func storeQuiz(storyID primitive.ObjectID, quizData QuizGenerationResponse, ques
 	}
 
 	return quiz.ID.Hex(), nil
+}
+
+func markStoryAIQuestionsGenerated(storyID primitive.ObjectID) error {
+	collection := db.Database.Collection("stories")
+
+	// Update the story to mark AI questions as generated
+	update := bson.M{
+		"$set": bson.M{
+			"isAIQuestionsGenerated": true,
+			"updatedAt":              time.Now(),
+		},
+	}
+
+	_, err := collection.UpdateOne(
+		context.Background(),
+		bson.M{"_id": storyID},
+		update,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update story AI flag: %w", err)
+	}
+
+	fmt.Printf("✅ Story marked as having AI-generated questions\n")
+	return nil
 }
 
 func errorResponse(statusCode int, message string) (events.APIGatewayProxyResponse, error) {

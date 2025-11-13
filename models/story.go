@@ -52,6 +52,9 @@ type Story struct {
 	Vocabulary  []VocabularyWord   `bson:"vocabulary" json:"vocabulary"`   // Key vocabulary from the story
 	Summary     string             `bson:"summary" json:"summary"`         // Brief story summary
 
+	// AI Generation Flags
+	IsAIQuestionsGenerated bool `bson:"isAIQuestionsGenerated" json:"isAIQuestionsGenerated"` // Track if AI questions have been generated
+
 	// Content Management Fields
 	ContentMetadata `bson:",inline"`
 

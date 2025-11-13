@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import Layout from "../../components/layout";
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 import { useAuth } from "../../contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { AIGenerationPanel } from "../../components/organisms/AIGenerationPanel";
 import { LoadingSpinner } from "../../components/atoms/LoadingSpinner";
@@ -21,6 +27,7 @@ interface Story {
   status: string;
   wordCount: number;
   topics: string[];
+  isAIQuestionsGenerated?: boolean;
 }
 
 const AIGenerationPage: React.FC = () => {
@@ -41,13 +48,14 @@ const AIGenerationPage: React.FC = () => {
 
       const response = await axios.get(`${API_BASE_URL}/stories-management`);
       const allStories = response.data?.stories || [];
-      
-      // Filter only published stories
-      const publishedStories = allStories.filter(
-        (story: any) => story.status === "published"
+
+      // Filter only published stories that don't have AI-generated questions yet
+      const availableStories = allStories.filter(
+        (story: any) =>
+          story.status === "published" && !story.isAIQuestionsGenerated
       );
 
-      setStories(publishedStories);
+      setStories(availableStories);
     } catch (err: any) {
       console.error("Error loading stories:", err);
       setError("Failed to load published stories");
@@ -57,8 +65,9 @@ const AIGenerationPage: React.FC = () => {
   };
 
   const handleGenerationComplete = () => {
-    // Optionally refresh or show success message
+    // Refresh the stories list to remove the completed story
     setSelectedStory(null);
+    loadPublishedStories();
   };
 
   return (
@@ -70,7 +79,8 @@ const AIGenerationPage: React.FC = () => {
               🤖 AI Content Generation
             </h1>
             <p className="text-muted-foreground">
-              Use AI to automatically generate questions and quizzes for published stories
+              Use AI to automatically generate questions and quizzes for
+              published stories
             </p>
           </div>
 
@@ -81,15 +91,22 @@ const AIGenerationPage: React.FC = () => {
           ) : stories.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">
-                  No published stories available for AI generation.
+                <p className="text-muted-foreground mb-2">
+                  No stories available for AI generation.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  All published stories either already have AI-generated
+                  questions or none are published yet.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-6">
               {stories.map((story) => (
-                <Card key={story.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={story.id}
+                  className="hover:shadow-md transition-shadow"
+                >
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -98,9 +115,15 @@ const AIGenerationPage: React.FC = () => {
                         </CardTitle>
                         <CardDescription className="flex gap-2 flex-wrap">
                           <Badge variant="secondary">{story.level}</Badge>
-                          <Badge variant="outline">{story.wordCount} words</Badge>
+                          <Badge variant="outline">
+                            {story.wordCount} words
+                          </Badge>
                           {story.topics?.map((topic, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {topic}
                             </Badge>
                           ))}
@@ -142,23 +165,27 @@ const AIGenerationPage: React.FC = () => {
 
           <Card className="mt-8 bg-blue-50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg">💡 How AI Generation Works</CardTitle>
+              <CardTitle className="text-lg">
+                💡 How AI Generation Works
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <p>
-                • <strong>Questions:</strong> AI generates 8-12 diverse questions covering
-                comprehension, vocabulary, and grammar based on story content
+                • <strong>Questions:</strong> AI generates 8-12 diverse
+                questions covering comprehension, vocabulary, and grammar based
+                on story content
               </p>
               <p>
-                • <strong>Quiz:</strong> AI creates quiz metadata including title,
-                description, and recommended structure
+                • <strong>Quiz:</strong> AI creates quiz metadata including
+                title, description, and recommended structure
               </p>
               <p>
-                • <strong>Both:</strong> Generates both questions and quiz in one operation
+                • <strong>Both:</strong> Generates both questions and quiz in
+                one operation
               </p>
               <p className="pt-2 border-t border-blue-200">
-                ⚠️ All AI-generated content starts in <strong>draft</strong> status and
-                requires admin review before publishing
+                ⚠️ All AI-generated content starts in <strong>draft</strong>{" "}
+                status and requires admin review before publishing
               </p>
             </CardContent>
           </Card>

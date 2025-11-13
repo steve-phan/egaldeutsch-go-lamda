@@ -148,7 +148,7 @@ func getQuiz(ctx context.Context, storyID string, headers map[string]string) (ev
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusNotFound,
 			Headers:    headers,
-			Body:       `{"success": false, "error": "No questions found for this story"}`,
+			Body:       `{"success": false, "error": "No questions available for this story. Please generate AI questions first to create a quiz."}`,
 		}, nil
 	}
 

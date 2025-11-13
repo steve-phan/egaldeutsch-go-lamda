@@ -46,11 +46,14 @@ func GetDatabase() (*mongo.Database, error) {
 
 func initializeConnection() error {
 	// Load .env file if it exists (for local development)
-	// This will be ignored in production where env vars are set directly
-	err := godotenv.Load()
+	// Try to load from project root first, then current directory
+	err := godotenv.Load("../.env")
 	if err != nil {
-		// Don't fail if .env file doesn't exist - this is normal in production
-		fmt.Printf("No .env file found or failed to load (this is normal in production): %v\n", err)
+		// Try current directory as fallback
+		if err := godotenv.Load(); err != nil {
+			// Don't fail if .env file doesn't exist - this is normal in production
+			fmt.Printf("No .env file found or failed to load (this is normal in production): %v\n", err)
+		}
 	}
 
 	uri := os.Getenv("MONGODB_URI")
