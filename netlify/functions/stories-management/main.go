@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
+	"egaldeutsch-serverless/pkg/middleware"
+	"egaldeutsch-serverless/pkg/notification"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -64,16 +68,14 @@ type ListStoriesResponse struct {
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Connect to MongoDB
 	if err := db.Connect(); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Body:       `{"error": "Database connection failed"}`,
-			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
-			},
-		}, nil
+		return response.SimpleError(500, "Database connection failed"), nil
 	}
 	defer db.Disconnect()
+
+	// Handle CORS preflight
+	if corsResponse, handled := middleware.HandleCORS(request); handled {
+		return corsResponse, nil
+	}
 
 	// Route based on HTTP method and path
 	switch request.HTTPMethod {
@@ -91,14 +93,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	case "DELETE":
 		return deleteStory(request)
 	default:
-		return events.APIGatewayProxyResponse{
-			StatusCode: 405,
-			Body:       `{"error": "Method not allowed"}`,
-			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
-			},
-		}, nil
+		return response.SimpleError(405, "Method not allowed"), nil
 	}
 }
 
@@ -464,6 +459,39 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 	var updatedStory models.Story
 	if err := result.Decode(&updatedStory); err != nil {
 		return errorResponse(500, "Failed to update story status")
+	}
+
+	// Send notifications based on status change
+	switch statusReq.Status {
+	case models.StatusPublished:
+		// Notify all users when story is published
+		go func() {
+			if err := notification.NotifyStoryPublished(updatedStory.ID, updatedStory.Title); err != nil {
+				log.Printf("Failed to send publication notifications for story %s: %v", updatedStory.ID.Hex(), err)
+			}
+		}()
+	case models.StatusPreview:
+		// Notify admins/reviewers when story is submitted for review
+		go func() {
+			if err := notification.NotifyStorySubmitted(currentStory.CreatedBy, updatedStory.ID, updatedStory.Title); err != nil {
+				log.Printf("Failed to send submission notifications for story %s: %v", updatedStory.ID.Hex(), err)
+			}
+		}()
+	case models.StatusReady, models.StatusDraft:
+		// Notify creator about status change
+		message := statusReq.Comment
+		if message == "" {
+			if statusReq.Status == models.StatusReady {
+				message = "Your story has been approved and is ready to publish!"
+			} else {
+				message = "Your story has been sent back for revision."
+			}
+		}
+		go func() {
+			if err := notification.NotifyStoryStatusChange(currentStory.CreatedBy, updatedStory.ID, updatedStory.Title, string(statusReq.Status), message); err != nil {
+				log.Printf("Failed to send status change notification for story %s: %v", updatedStory.ID.Hex(), err)
+			}
+		}()
 	}
 
 	response := convertToStoryResponse(updatedStory)

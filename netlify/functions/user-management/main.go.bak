@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -432,7 +433,7 @@ func getUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 func listUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Validate session and check admin/reviewer role using auth package
-	_, err := auth.ValidateSessionWithRole(request, models.RoleAdmin, models.RoleReviewer)
+	user, err := auth.ValidateSessionWithRole(request, models.RoleAdmin, models.RoleReviewer)
 	if err != nil {
 		if err.Error() == "insufficient permissions" {
 			return response.SimpleError(403, "Insufficient permissions"), nil
@@ -531,9 +532,17 @@ func updateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 
 	// Handle email update (check for uniqueness)
 	if updateReq.Email != nil && *updateReq.Email != user.Email {
-		err := collection.FindOne(context.TODO(), bson.M{"email": *updateReq.Email}).Err()
+		var existingUser models.User
+		err := collection.FindOne(context.TODO(), bson.M{"email": *updateReq.Email}).Decode(&existingUser)
 		if err == nil {
-			return response.SimpleError(409, "Email already in use"), nil
+			return events.APIGatewayProxyResponse{
+				StatusCode: 409,
+				Body:       `{"error": "Email already in use"}`,
+				Headers: map[string]string{
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			}, nil
 		}
 		updateFields["email"] = *updateReq.Email
 	}
@@ -543,13 +552,27 @@ func updateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		// Verify old password
 		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(*updateReq.OldPassword))
 		if err != nil {
-			return response.SimpleError(400, "Current password is incorrect"), nil
+			return events.APIGatewayProxyResponse{
+				StatusCode: 400,
+				Body:       `{"error": "Current password is incorrect"}`,
+				Headers: map[string]string{
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			}, nil
 		}
 
 		// Hash new password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*updateReq.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
-			return response.SimpleError(500, "Failed to hash new password"), nil
+			return events.APIGatewayProxyResponse{
+				StatusCode: 500,
+				Body:       `{"error": "Failed to hash new password"}`,
+				Headers: map[string]string{
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			}, nil
 		}
 		updateFields["passwordHash"] = string(hashedPassword)
 	}
@@ -561,14 +584,28 @@ func updateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		bson.M{"$set": updateFields},
 	)
 	if err != nil {
-		return response.SimpleError(500, "Failed to update user"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to update user"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Fetch updated user
 	var updatedUser models.User
 	err = collection.FindOne(context.TODO(), bson.M{"_id": user.ID}).Decode(&updatedUser)
 	if err != nil {
-		return response.SimpleError(500, "Failed to fetch updated user"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to fetch updated user"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Return updated user profile
@@ -585,49 +622,141 @@ func updateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		LastLoginAt: updatedUser.LastLoginAt,
 	}
 
-	return response.JSON(200, userResponse)
+	response, err := json.Marshal(userResponse)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to encode response"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       string(response),
+		Headers: map[string]string{
+			"Content-Type":                "application/json",
+			"Access-Control-Allow-Origin": "*",
+		},
+	}, nil
 }
 
 func logoutUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Extract token using auth package
-	token, err := auth.ExtractToken(request)
-	if err != nil {
-		return response.SimpleError(400, "No valid authorization token"), nil
+	authHeader := request.Headers["Authorization"]
+	if authHeader == "" {
+		authHeader = request.Headers["authorization"] // Check lowercase
 	}
 
-	// Delete session using auth package
-	if err := auth.DeleteSession(token); err != nil {
+	if authHeader == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "No authorization header"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Extract token from "Bearer <token>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Invalid authorization header format"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	token := parts[1]
+
+	// Delete session from database
+	sessionCollection := db.Database.Collection("sessions")
+	_, err := sessionCollection.DeleteOne(context.TODO(), bson.M{"token": token})
+	if err != nil {
+		// Even if deletion fails, we should still return success
+		// as the client side logout should still work
 		log.Printf("Failed to delete session: %v", err)
 	}
 
-	return response.SuccessJSON(200, nil, "Logged out successfully")
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       `{"message": "Logged out successfully"}`,
+		Headers: map[string]string{
+			"Content-Type":                "application/json",
+			"Access-Control-Allow-Origin": "*",
+		},
+	}, nil
 }
 
 func deleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session and check admin role using auth package
-	user, err := auth.ValidateSessionWithRole(request, models.RoleAdmin)
+	// Validate session and check admin role
+	user, err := validateSession(request)
 	if err != nil {
-		if err.Error() == "insufficient permissions" {
-			return response.SimpleError(403, "Insufficient permissions"), nil
-		}
-		return response.SimpleError(401, "Unauthorized"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 401,
+			Body:       `{"error": "Unauthorized"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
+	}
+
+	// Only admins can delete users
+	if user.Role != models.RoleAdmin {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 403,
+			Body:       `{"error": "Insufficient permissions"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Get user ID from path parameters
 	userID := request.PathParameters["id"]
 	if userID == "" {
-		return response.SimpleError(400, "User ID is required"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "User ID is required"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Convert string ID to ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		return response.SimpleError(400, "Invalid user ID format"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Invalid user ID format"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Prevent admin from deleting themselves
 	if objectID == user.ID {
-		return response.SimpleError(400, "Cannot delete your own account"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "Cannot delete your own account"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Check if user exists
@@ -635,7 +764,14 @@ func deleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	var targetUser models.User
 	err = collection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&targetUser)
 	if err != nil {
-		return response.SimpleError(404, "User not found"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 404,
+			Body:       `{"error": "User not found"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
 	// Delete user's sessions first
@@ -657,10 +793,24 @@ func deleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 		}},
 	)
 	if err != nil {
-		return response.SimpleError(500, "Failed to delete user"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       `{"error": "Failed to delete user"}`,
+			Headers: map[string]string{
+				"Content-Type":                "application/json",
+				"Access-Control-Allow-Origin": "*",
+			},
+		}, nil
 	}
 
-	return response.SuccessJSON(200, nil, "User deleted successfully")
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       `{"message": "User deleted successfully"}`,
+		Headers: map[string]string{
+			"Content-Type":                "application/json",
+			"Access-Control-Allow-Origin": "*",
+		},
+	}, nil
 }
 
 func main() {
