@@ -47,3 +47,7 @@ go.work
 
 # Netlify
 .netlify/
+
+
+# Docs
+docs/
