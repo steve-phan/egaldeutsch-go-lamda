@@ -33,14 +33,27 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       setIsSubmitting(true);
       
-      // TODO: Implement password reset API call
-      // For now, we'll simulate the request
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setSuccess(true);
+      // Call password reset API
+      const response = await fetch('/.netlify/functions/user-management/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+      } else {
+        // Even on error, show success message to prevent email enumeration
+        setSuccess(true);
+      }
     } catch (err: any) {
       console.error('Password reset error:', err);
-      setError('Failed to send reset email. Please try again.');
+      // Still show success to prevent email enumeration
+      setSuccess(true);
     } finally {
       setIsSubmitting(false);
     }

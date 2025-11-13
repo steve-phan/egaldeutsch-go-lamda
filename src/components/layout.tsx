@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../contexts/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -60,6 +61,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
               {isAuthenticated && user ? (
                 <>
+                  {/* Notification Bell */}
+                  <NotificationBell className="mx-2" />
+                  
                   <Link
                     to="/profile"
                     className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
