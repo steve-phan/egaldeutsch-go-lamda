@@ -34,8 +34,7 @@ const LeaderboardPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const apiUrl =
-        process.env.GATSBY_API_URL || "/.netlify/functions";
+      const apiUrl = process.env.GATSBY_API_URL || "/.netlify/functions";
       const response = await axios.get(`${apiUrl}/leaderboard?limit=100`);
 
       if (response.data.success) {
@@ -124,14 +123,14 @@ const LeaderboardPage: React.FC = () => {
               </div>
               <div className="bg-purple-50 rounded-lg p-6 text-center">
                 <div className="text-3xl font-bold text-purple-600 mb-2">
-                  {data.entries.length}
+                  {data.entries?.length}
                 </div>
                 <div className="text-sm text-gray-600">Ranked Players</div>
               </div>
             </div>
 
             {/* Leaderboard Table */}
-            {data.entries.length === 0 ? (
+            {data.entries?.length === 0 ? (
               <div className="text-center py-12">
                 <div className="max-w-md mx-auto">
                   <span className="text-6xl mb-4 block">🏆</span>
@@ -172,7 +171,7 @@ const LeaderboardPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {data.entries.map((entry) => (
+                      {data.entries?.map((entry) => (
                         <tr
                           key={entry.userId}
                           className="hover:bg-gray-50 transition-colors"
@@ -226,7 +225,7 @@ const LeaderboardPage: React.FC = () => {
 
                 {/* Mobile View */}
                 <div className="md:hidden divide-y divide-gray-200">
-                  {data.entries.map((entry) => (
+                  {data.entries?.map((entry) => (
                     <div
                       key={entry.userId}
                       className="p-4 hover:bg-gray-50 transition-colors"
@@ -288,8 +287,7 @@ const LeaderboardPage: React.FC = () => {
                 ranks! 🚀
               </p>
               <p className="mt-2">
-                Last updated:{" "}
-                {new Date(data.generatedAt).toLocaleString()}
+                Last updated: {new Date(data.generatedAt).toLocaleString()}
               </p>
             </div>
           </>
