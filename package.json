@@ -13,13 +13,19 @@
     "build:functions": "go build -o netlify/functions/stories/stories ./netlify/functions/stories && go build -o netlify/functions/quiz/quiz ./netlify/functions/quiz && go build -o netlify/functions/health/health ./netlify/functions/health"
   },
   "dependencies": {
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-separator": "^1.1.8",
     "axios": "^1.6.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "gatsby": "^5.12.0",
     "gatsby-plugin-alias-imports": "^1.0.5",
     "gatsby-plugin-manifest": "^5.15.0",
+    "lucide-react": "^0.553.0",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@netlify/plugin-gatsby": "^3.8.4",
