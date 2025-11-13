@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/smtp"
 	"os"
+	"strings"
 	"time"
 
 	"egaldeutsch-serverless/db"
@@ -58,6 +59,21 @@ func (s *EmailService) SendEmail(to, subject, body string) error {
 	if !s.IsConfigured() {
 		return fmt.Errorf("email service not configured")
 	}
+
+	// Sanitize email address to prevent injection
+	to = strings.TrimSpace(to)
+	// Basic email validation - reject if contains newlines or other suspicious characters
+	if strings.ContainsAny(to, "\r\n\t") {
+		return fmt.Errorf("invalid email address format")
+	}
+	// Validate email format
+	if !strings.Contains(to, "@") || strings.Count(to, "@") != 1 {
+		return fmt.Errorf("invalid email address format")
+	}
+
+	// Sanitize subject to prevent header injection
+	subject = strings.ReplaceAll(subject, "\r", "")
+	subject = strings.ReplaceAll(subject, "\n", "")
 
 	// Prepare email message
 	from := s.FromEmail
