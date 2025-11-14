@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -28,6 +29,8 @@ import (
 
 // init loads environment variables from .env file in development
 func init() {
+	log.Printf("Initializing user-management function")
+
 	// Try multiple paths for .env file - Netlify dev changes working directory
 	paths := []string{
 		"../../../.env", // From function directory to project root
@@ -36,11 +39,25 @@ func init() {
 		"./.env",        // Explicit current directory
 	}
 
+	envLoaded := false
 	for _, path := range paths {
 		if err := godotenv.Load(path); err == nil {
-			return
+			log.Printf("Successfully loaded .env file from: %s", path)
+			envLoaded = true
+			break
 		}
 	}
+
+	if !envLoaded {
+		log.Printf("No .env file loaded (this is normal in production)")
+	}
+
+	// Log some key environment variables (without exposing sensitive data)
+	mongoURI := os.Getenv("MONGODB_URI")
+	mongoDBName := os.Getenv("MONGODB_DATABASE")
+
+	log.Printf("Environment check - MONGODB_URI present: %t", mongoURI != "")
+	log.Printf("Environment check - MONGODB_DATABASE: %s", mongoDBName)
 }
 
 // UserRegistrationRequest represents user registration data
@@ -230,9 +247,20 @@ func registerUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxy
 
 // loginUser handles user authentication
 func loginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("Login attempt - starting authentication process")
+
 	var loginReq UserLoginRequest
 	if err := json.Unmarshal([]byte(request.Body), &loginReq); err != nil {
+		log.Printf("Login error - invalid request format: %v", err)
 		return response.SimpleError(400, "Invalid request format"), nil
+	}
+
+	log.Printf("Login attempt for username/email: %s", loginReq.Username)
+
+	// Ensure database connection
+	if err := db.EnsureConnection(); err != nil {
+		log.Printf("Login error - database connection failed: %v", err)
+		return response.SimpleError(500, "Database connection error"), nil
 	}
 
 	// Find user by username or email
@@ -246,25 +274,37 @@ func loginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	}).Decode(&user)
 
 	if err != nil {
+		log.Printf("Login error - user not found: %v", err)
 		return response.SimpleError(401, "Invalid credentials"), nil
 	}
 
+	log.Printf("User found: %s (ID: %s, Status: %s)", user.Username, user.ID.Hex(), user.Status)
+
 	// Check if user is active
 	if user.Status != models.UserStatusActive {
+		log.Printf("Login error - user account not active: %s (Status: %s)", user.Username, user.Status)
 		return response.SimpleError(403, "Account is not active"), nil
 	}
 
 	// Verify password
+	log.Printf("Verifying password for user: %s", user.Username)
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(loginReq.Password))
 	if err != nil {
+		log.Printf("Login error - password verification failed for user %s: %v", user.Username, err)
 		return response.SimpleError(401, "Invalid credentials"), nil
 	}
 
+	log.Printf("Password verified successfully for user: %s", user.Username)
+
 	// Create session using auth package
+	log.Printf("Creating session for user: %s", user.Username)
 	session, token, err := auth.CreateSession(user.ID, request)
 	if err != nil {
+		log.Printf("Login error - failed to create session for user %s: %v", user.Username, err)
 		return response.SimpleError(500, "Failed to create session"), nil
 	}
+
+	log.Printf("Session created successfully for user: %s", user.Username)
 
 	// Update user's last login
 	now := time.Now()
@@ -335,8 +375,11 @@ func forgotPassword(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 	// Send password reset email (non-blocking)
 	go func() {
+		log.Printf("Attempting to send password reset email to: %s", user.Email)
 		if err := sendPasswordResetEmailAsync(user.Email, user.Name, token); err != nil {
 			log.Printf("Failed to send password reset email to %s: %v", user.Email, err)
+		} else {
+			log.Printf("Successfully sent password reset email to: %s", user.Email)
 		}
 	}()
 
@@ -688,6 +731,9 @@ func sendWelcomeEmailAsync(email, userName string) error {
 // sendPasswordResetEmailAsync sends a password reset email via the email service
 func sendPasswordResetEmailAsync(email, userName, resetToken string) error {
 	emailServiceURL := getEmailServiceURL()
+	fullURL := emailServiceURL + "/send-password-reset"
+
+	log.Printf("Sending password reset email - URL: %s, Email: %s", fullURL, email)
 
 	payload := map[string]interface{}{
 		"email":      email,
@@ -695,36 +741,57 @@ func sendPasswordResetEmailAsync(email, userName, resetToken string) error {
 		"resetToken": resetToken,
 	}
 
-	return callEmailService(emailServiceURL+"/send-password-reset", payload)
+	return callEmailService(fullURL, payload)
 }
 
 // callEmailService makes an HTTP call to the email service
 func callEmailService(url string, payload map[string]interface{}) error {
+	log.Printf("Calling email service at URL: %s", url)
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
+		log.Printf("Failed to marshal email payload: %v", err)
 		return fmt.Errorf("failed to marshal email payload: %w", err)
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
+		log.Printf("HTTP request to email service failed: %v", err)
 		return fmt.Errorf("failed to call email service: %w", err)
 	}
 	defer resp.Body.Close()
 
+	log.Printf("Email service responded with status: %d", resp.StatusCode)
+
 	if resp.StatusCode != 200 {
+		// Read response body for more details
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Email service error response (status %d): %s", resp.StatusCode, string(bodyBytes))
 		return fmt.Errorf("email service returned status %d", resp.StatusCode)
 	}
 
+	log.Printf("Email service call successful")
 	return nil
 }
 
 // getEmailServiceURL returns the email service URL
 func getEmailServiceURL() string {
+	// Check for custom environment variable first
 	if baseURL := os.Getenv("NETLIFY_FUNCTIONS_URL"); baseURL != "" {
+		log.Printf("Using NETLIFY_FUNCTIONS_URL: %s", baseURL)
 		return baseURL + "/email-service"
 	}
-	// Default for local development
+
+	// Check if we're in Netlify production environment
+	if netlifyURL := os.Getenv("URL"); netlifyURL != "" {
+		fullURL := netlifyURL + "/.netlify/functions/email-service"
+		log.Printf("Using Netlify production URL: %s", fullURL)
+		return fullURL
+	}
+
+	// Fallback for localhost development
+	log.Printf("Using default localhost URL for email service")
 	return "http://localhost:8888/.netlify/functions/email-service"
 }
 
