@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 
 // init loads environment variables from .env file in development
 func init() {
+	log.Printf("Initializing email service function")
+
 	// Try multiple paths for .env file - Netlify dev changes working directory
 	paths := []string{
 		"../../../.env", // From function directory to project root
@@ -30,11 +33,29 @@ func init() {
 		"./.env",        // Explicit current directory
 	}
 
+	envLoaded := false
 	for _, path := range paths {
 		if err := godotenv.Load(path); err == nil {
-			return
+			log.Printf("Successfully loaded .env file from: %s", path)
+			envLoaded = true
+			break
 		}
 	}
+
+	if !envLoaded {
+		log.Printf("No .env file loaded (this is normal in production)")
+	}
+
+	// Log environment variables (without exposing sensitive data)
+	emailProvider := os.Getenv("EMAIL_PROVIDER")
+	emailAPIKey := os.Getenv("EMAIL_API_KEY")
+	emailFrom := os.Getenv("EMAIL_FROM")
+	emailFromName := os.Getenv("EMAIL_FROM_NAME")
+
+	log.Printf("Environment check - EMAIL_PROVIDER: %s", emailProvider)
+	log.Printf("Environment check - EMAIL_API_KEY present: %t", emailAPIKey != "")
+	log.Printf("Environment check - EMAIL_FROM: %s", emailFrom)
+	log.Printf("Environment check - EMAIL_FROM_NAME: %s", emailFromName)
 }
 
 // EmailRequest represents email sending request
@@ -55,14 +76,18 @@ type EmailResponse struct {
 }
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("Email service handler called - Method: %s, Path: %s", request.HTTPMethod, request.Path)
+
 	// Connect to MongoDB
 	if err := db.Connect(); err != nil {
+		log.Printf("Database connection failed: %v", err)
 		return response.SimpleError(500, "Database connection failed"), nil
 	}
 	defer db.Disconnect()
 
 	// Handle CORS preflight requests
 	if corsResponse, handled := middleware.HandleCORS(request); handled {
+		log.Printf("CORS preflight handled")
 		return corsResponse, nil
 	}
 
@@ -71,6 +96,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	case "POST":
 		// Check specific routes first, then fallback to generic ones
 		if strings.Contains(request.Path, "/send-password-reset") {
+			log.Printf("Routing to password reset email handler")
 			return sendPasswordResetEmail(request)
 		}
 		if strings.Contains(request.Path, "/send-welcome") {
@@ -203,6 +229,8 @@ func sendWelcomeEmail(request events.APIGatewayProxyRequest) (events.APIGatewayP
 
 // sendPasswordResetEmail handles password reset email sending
 func sendPasswordResetEmail(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("Password reset email request received")
+
 	var req struct {
 		Email      string `json:"email"`
 		UserName   string `json:"userName"`
@@ -210,19 +238,26 @@ func sendPasswordResetEmail(request events.APIGatewayProxyRequest) (events.APIGa
 	}
 
 	if err := json.Unmarshal([]byte(request.Body), &req); err != nil {
+		log.Printf("Failed to unmarshal password reset request: %v", err)
 		return response.SimpleError(400, "Invalid request body"), nil
 	}
 
+	log.Printf("Password reset request parsed - Email: %s, UserName: %s", req.Email, req.UserName)
+
+	log.Printf("Initializing email service...")
 	emailService, err := email.NewServiceFromEnv()
 	if err != nil {
 		log.Printf("Failed to initialize email service: %v", err)
 		return response.SimpleError(500, "Email service initialization failed"), nil
 	}
+	log.Printf("Email service initialized successfully")
 
+	log.Printf("Sending password reset email to: %s", req.Email)
 	if err := emailService.SendPasswordResetEmail(req.Email, req.UserName, req.ResetToken); err != nil {
 		log.Printf("Failed to send password reset email: %v", err)
 		return response.SimpleError(500, "Failed to send password reset email"), nil
 	}
+	log.Printf("Password reset email sent successfully to: %s", req.Email)
 
 	responseData := EmailResponse{
 		Success:   true,

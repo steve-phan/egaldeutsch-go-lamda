@@ -775,12 +775,13 @@ func callEmailService(url string, payload map[string]interface{}) error {
 	return nil
 }
 
-// getEmailServiceURL returns the email service URL
+// getEmailServiceURL returns the base email service URL (without endpoint path)
 func getEmailServiceURL() string {
 	// Check for custom environment variable first
 	if baseURL := os.Getenv("NETLIFY_FUNCTIONS_URL"); baseURL != "" {
-		log.Printf("Using NETLIFY_FUNCTIONS_URL: %s", baseURL)
-		return baseURL + "/email-service"
+		fullURL := baseURL + "/.netlify/functions/email-service"
+		log.Printf("Using NETLIFY_FUNCTIONS_URL base: %s", fullURL)
+		return fullURL
 	}
 
 	// Check if we're in Netlify production environment
@@ -793,9 +794,7 @@ func getEmailServiceURL() string {
 	// Fallback for localhost development
 	log.Printf("Using default localhost URL for email service")
 	return "http://localhost:8888/.netlify/functions/email-service"
-}
-
-// Password reset token functions (simplified implementation)
+} // Password reset token functions (simplified implementation)
 type PasswordResetToken struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
 	UserID    primitive.ObjectID `bson:"userId"`
