@@ -122,9 +122,13 @@ const IndexPage: React.FC = () => {
                 </div>
 
                 {/* Stories Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                   {stories.map((story) => (
-                    <StoryCard key={story.id} story={story} />
+                    <StoryCard
+                      key={story.id}
+                      story={story}
+                      className="h-full"
+                    />
                   ))}
                 </div>
               </>

@@ -35,9 +35,14 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
       setQuiz(fetchedQuiz);
       // Initialize answers array with -1 (no answer selected)
       setAnswers(new Array(fetchedQuiz.questions.length).fill(-1));
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching quiz:", err);
-      setError("Failed to load quiz. Please try again later.");
+      // Check if it's a "no questions" error
+      const errorMessage =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to load quiz. Please try again later.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -107,39 +112,74 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
   }
 
   if (error || !quiz) {
+    const isNoQuestionsError =
+      error && error.includes("No questions available");
+
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            <div className="flex items-center">
-              <span className="text-red-500 mr-2">⚠️</span>
-              {error || "Quiz not found"}
-            </div>
-            <div className="mt-4">
-              <Link
-                to="/"
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors mr-3"
-              >
-                Back to Stories
-              </Link>
-              {params.storyId && (
-                <>
+          {isNoQuestionsError ? (
+            // Friendly "no questions" message
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto">
+                <span className="text-6xl mb-4 block">📝</span>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                  No Quiz Questions Yet
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  This story doesn't have quiz questions available at the
+                  moment. You can still read the story and check back later for
+                  the quiz!
+                </p>
+                <div className="space-y-3">
                   <Link
                     to={`/story/${params.storyId}`}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors mr-3"
+                    className="block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
-                    Read Story First
+                    Read Story Instead
                   </Link>
-                  <button
-                    onClick={() => loadQuiz(params.storyId)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors"
+                  <Link
+                    to="/"
+                    className="block bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors"
                   >
-                    Try Again
-                  </button>
-                </>
-              )}
+                    Browse Other Stories
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            // Regular error message
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+              <div className="flex items-center">
+                <span className="text-red-500 mr-2">⚠️</span>
+                {error || "Quiz not found"}
+              </div>
+              <div className="mt-4">
+                <Link
+                  to="/"
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors mr-3"
+                >
+                  Back to Stories
+                </Link>
+                {params.storyId && (
+                  <>
+                    <Link
+                      to={`/story/${params.storyId}`}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors mr-3"
+                    >
+                      Read Story First
+                    </Link>
+                    <button
+                      onClick={() => loadQuiz(params.storyId)}
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Layout>
     );

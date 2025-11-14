@@ -11,8 +11,8 @@ interface StoryCardProps {
 
 const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
   return (
-    <Card className={className}>
-      <CardContent className="pt-6">
+    <Card className={`flex flex-col ${className}`}>
+      <CardContent className="pt-6 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-xl font-semibold text-foreground line-clamp-2 flex-1 mr-3">
             {story.title}
@@ -26,22 +26,25 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
           {story.summary}
         </p>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-          <div className="flex items-center space-x-4">
-            <span className="flex items-center">
-              📚 {story.wordCount} words
-            </span>
-            <span className="flex items-center">
-              ⏱️ {story.readingTime} min read
-            </span>
-            <span className="flex items-center">
-              🎯 {story.topics.join(", ")}
-            </span>
-          </div>
+        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mb-4">
+          <span className="flex items-center bg-muted/50 px-2 py-1 rounded-md">
+            📚 {story.wordCount} words
+          </span>
+          <span className="flex items-center bg-muted/50 px-2 py-1 rounded-md">
+            ⏱️ {story.readingTime} min read
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1 mb-4">
+          {story.topics.map((topic, index) => (
+            <Badge key={index} variant="secondary" className="text-xs">
+              🎯 {topic}
+            </Badge>
+          ))}
         </div>
 
         {story.vocabulary && story.vocabulary.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 mt-auto">
             <p className="text-xs text-muted-foreground mb-2">
               Key vocabulary:
             </p>
@@ -50,7 +53,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
                 <Badge
                   key={index}
                   variant="secondary"
-                  className="bg-primary/10 text-primary"
+                  className="bg-primary/10 text-primary text-xs"
                 >
                   {word.german}
                 </Badge>
@@ -58,7 +61,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
               {story.vocabulary.length > 3 && (
                 <Badge
                   variant="secondary"
-                  className="bg-muted text-muted-foreground"
+                  className="bg-muted text-muted-foreground text-xs"
                 >
                   +{story.vocabulary.length - 3} more
                 </Badge>
@@ -68,7 +71,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
         )}
       </CardContent>
 
-      <CardFooter className="flex space-x-3">
+      <CardFooter className="flex space-x-3 mt-auto">
         <Link to={`/story/${story.id}`} className="flex-1">
           <Button variant="default" className="w-full">
             Read Story
