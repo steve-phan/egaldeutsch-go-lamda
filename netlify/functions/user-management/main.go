@@ -20,10 +20,28 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// init loads environment variables from .env file in development
+func init() {
+	// Try multiple paths for .env file - Netlify dev changes working directory
+	paths := []string{
+		"../../../.env", // From function directory to project root
+		"../../.env",    // Alternative path
+		".env",          // Current directory
+		"./.env",        // Explicit current directory
+	}
+
+	for _, path := range paths {
+		if err := godotenv.Load(path); err == nil {
+			return
+		}
+	}
+}
 
 // UserRegistrationRequest represents user registration data
 type UserRegistrationRequest struct {

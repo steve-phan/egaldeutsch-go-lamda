@@ -46,9 +46,7 @@ func NewServiceFromEnv() (*Service, error) {
 		FromEmail:    os.Getenv("EMAIL_FROM"),
 		FromName:     getEnvOrDefault("EMAIL_FROM_NAME", "EgalDeutsch"),
 		ReplyToEmail: os.Getenv("EMAIL_REPLY_TO"),
-	}
-
-	// Parse max bulk recipients
+	} // Parse max bulk recipients
 	if maxBulkStr := os.Getenv("EMAIL_MAX_BULK_RECIPIENTS"); maxBulkStr != "" {
 		if maxBulk, err := strconv.Atoi(maxBulkStr); err == nil {
 			config.MaxBulkRecipients = maxBulk

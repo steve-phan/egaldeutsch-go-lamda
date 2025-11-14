@@ -17,9 +17,10 @@ func (s *Service) getWelcomeEmailTemplate(userName string) *EmailTemplate {
     <title>Welcome to EgalDeutsch!</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header { background-color: #0ea5e9; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
-        .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .button { display: inline-block; background-color: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .button:hover { background-color: #0284c7; }
         .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
     </style>
 </head>
@@ -98,11 +99,12 @@ func (s *Service) getPasswordResetEmailTemplate(userName, resetToken string) *Em
     <title>Reset Your Password - EgalDeutsch</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header { background-color: #0ea5e9; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
-        .button { display: inline-block; background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .button { display: inline-block; background-color: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .button:hover { background-color: #0284c7; }
         .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-        .warning { background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 15px 0; }
+        .warning { background-color: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; margin: 15px 0; }
     </style>
 </head>
 <body>
@@ -181,11 +183,12 @@ func (s *Service) getNewStoryEmailTemplate(storyTitle, storyLevel, storyID strin
     <title>New German Story Available - EgalDeutsch</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #059669; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background-color: #f0fdf4; padding: 30px; border-radius: 0 0 8px 8px; }
-        .story-card { background-color: white; border: 2px solid #d1fae5; border-radius: 8px; padding: 20px; margin: 15px 0; }
-        .level-badge { display: inline-block; background-color: #059669; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-        .button { display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .header { background-color: #0ea5e9; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f0f9ff; padding: 30px; border-radius: 0 0 8px 8px; }
+        .story-card { background-color: white; border: 2px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 15px 0; }
+        .level-badge { display: inline-block; background-color: #0ea5e9; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        .button { display: inline-block; background-color: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .button:hover { background-color: #0284c7; }
         .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
     </style>
 </head>

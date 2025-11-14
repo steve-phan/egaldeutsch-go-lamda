@@ -16,8 +16,26 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 )
+
+// init loads environment variables from .env file in development
+func init() {
+	// Try multiple paths for .env file - Netlify dev changes working directory
+	paths := []string{
+		"../../../.env", // From function directory to project root
+		"../../.env",    // Alternative path
+		".env",          // Current directory
+		"./.env",        // Explicit current directory
+	}
+
+	for _, path := range paths {
+		if err := godotenv.Load(path); err == nil {
+			return
+		}
+	}
+}
 
 // EmailRequest represents email sending request
 type EmailRequest struct {
@@ -51,17 +69,18 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	// Route based on HTTP method and path
 	switch request.HTTPMethod {
 	case "POST":
-		if strings.Contains(request.Path, "/send") {
-			return sendEmail(request)
+		// Check specific routes first, then fallback to generic ones
+		if strings.Contains(request.Path, "/send-password-reset") {
+			return sendPasswordResetEmail(request)
 		}
 		if strings.Contains(request.Path, "/send-welcome") {
 			return sendWelcomeEmail(request)
 		}
-		if strings.Contains(request.Path, "/send-password-reset") {
-			return sendPasswordResetEmail(request)
-		}
 		if strings.Contains(request.Path, "/send-new-story-notification") {
 			return sendNewStoryNotification(request)
+		}
+		if strings.Contains(request.Path, "/send") {
+			return sendEmail(request)
 		}
 		return response.SimpleError(404, "Endpoint not found"), nil
 	case "GET":
