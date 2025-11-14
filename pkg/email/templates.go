@@ -8,7 +8,7 @@ import (
 // getWelcomeEmailTemplate returns the welcome email template
 func (s *Service) getWelcomeEmailTemplate(userName string) *EmailTemplate {
 	baseURL := getEnvOrDefault("FRONTEND_URL", "http://localhost:8000")
-	
+
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -89,7 +89,7 @@ If you didn't create this account, please ignore this email.`, userName, baseURL
 func (s *Service) getPasswordResetEmailTemplate(userName, resetToken string) *EmailTemplate {
 	baseURL := getEnvOrDefault("FRONTEND_URL", "http://localhost:8000")
 	resetURL := fmt.Sprintf("%s/auth/reset-password?token=%s", baseURL, resetToken)
-	
+
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -170,9 +170,9 @@ This email was sent because a password reset was requested for your account.`, u
 func (s *Service) getNewStoryEmailTemplate(storyTitle, storyLevel, storyID string) *EmailTemplate {
 	baseURL := getEnvOrDefault("FRONTEND_URL", "http://localhost:8000")
 	storyURL := fmt.Sprintf("%s/story/%s", baseURL, storyID)
-	
+
 	levelEmoji := getLevelEmoji(storyLevel)
-	
+
 	htmlContent := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>

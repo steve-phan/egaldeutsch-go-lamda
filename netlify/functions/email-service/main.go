@@ -21,9 +21,9 @@ import (
 
 // EmailRequest represents email sending request
 type EmailRequest struct {
-	Type     string            `json:"type"`     // "welcome", "password_reset", "new_story"
-	To       []string          `json:"to"`       // Recipients
-	Data     map[string]string `json:"data"`     // Template data
+	Type     string            `json:"type"`               // "welcome", "password_reset", "new_story"
+	To       []string          `json:"to"`                 // Recipients
+	Data     map[string]string `json:"data"`               // Template data
 	Subject  string            `json:"subject,omitempty"`  // Optional custom subject
 	Priority string            `json:"priority,omitempty"` // "high", "normal", "low"
 }
@@ -278,7 +278,7 @@ func getEmailConfig(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 // getSubscriberEmails retrieves subscriber emails from the database
 func getSubscriberEmails(maxUsers int) ([]string, error) {
 	collection := db.Database.Collection("users")
-	
+
 	// Set default limit if not specified
 	if maxUsers == 0 {
 		maxUsers = 10 // Default for trial accounts

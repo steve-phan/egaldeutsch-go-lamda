@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -471,6 +474,13 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 				log.Printf("Failed to send publication notifications for story %s: %v", updatedStory.ID.Hex(), err)
 			}
 		}()
+
+		// Send email notifications to subscribers
+		go func() {
+			if err := sendNewStoryEmailNotification(updatedStory.ID.Hex(), updatedStory.Title, updatedStory.Level); err != nil {
+				log.Printf("Failed to send email notifications for story %s: %v", updatedStory.ID.Hex(), err)
+			}
+		}()
 	case models.StatusPreview:
 		// Notify admins/reviewers when story is submitted for review
 		go func() {
@@ -584,6 +594,50 @@ func errorResponse(statusCode int, message string) (events.APIGatewayProxyRespon
 			"Access-Control-Allow-Origin": "*",
 		},
 	}, nil
+}
+
+// sendNewStoryEmailNotification sends email notifications for new published stories
+func sendNewStoryEmailNotification(storyID, storyTitle, storyLevel string) error {
+	emailServiceURL := getEmailServiceURL()
+
+	payload := map[string]interface{}{
+		"storyId":    storyID,
+		"storyTitle": storyTitle,
+		"storyLevel": storyLevel,
+		"maxUsers":   10, // Limit for trial account
+	}
+
+	return callEmailService(emailServiceURL+"/send-new-story-notification", payload)
+}
+
+// callEmailService makes an HTTP call to the email service
+func callEmailService(url string, payload map[string]interface{}) error {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal email payload: %w", err)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to call email service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("email service returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// getEmailServiceURL returns the email service URL
+func getEmailServiceURL() string {
+	if baseURL := os.Getenv("NETLIFY_FUNCTIONS_URL"); baseURL != "" {
+		return baseURL + "/email-service"
+	}
+	// Default for local development
+	return "http://localhost:8888/.netlify/functions/email-service"
 }
 
 func main() {

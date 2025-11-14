@@ -1,16 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/pkg/auth"
-	"egaldeutsch-serverless/pkg/email"
 	"egaldeutsch-serverless/pkg/middleware"
 	"egaldeutsch-serverless/pkg/notification"
 	"egaldeutsch-serverless/pkg/response"
@@ -172,14 +175,11 @@ func registerUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxy
 	}
 
 	// Send welcome email (non-blocking, log error if it fails)
-	emailService := email.NewEmailService()
-	if emailService.IsConfigured() {
-		go func() {
-			if err := emailService.SendWelcomeEmail(newUser.Email, newUser.FirstName); err != nil {
-				log.Printf("Failed to send welcome email to %s: %v", newUser.Email, err)
-			}
-		}()
-	}
+	go func() {
+		if err := sendWelcomeEmailAsync(newUser.Email, newUser.Name); err != nil {
+			log.Printf("Failed to send welcome email to %s: %v", newUser.Email, err)
+		}
+	}()
 
 	// Create notification for user registration
 	if err := notification.CreateNotification(
@@ -309,21 +309,18 @@ func forgotPassword(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	}
 
 	// Generate password reset token
-	token, err := email.CreatePasswordResetToken(user.ID)
+	token, err := createPasswordResetToken(user.ID)
 	if err != nil {
 		log.Printf("Failed to create password reset token for user %s: %v", user.ID.Hex(), err)
 		return response.SuccessJSON(200, nil, "If the email exists, a password reset link has been sent")
 	}
 
-	// Send password reset email
-	emailService := email.NewEmailService()
-	if emailService.IsConfigured() {
-		go func() {
-			if err := emailService.SendPasswordResetEmail(user.Email, user.FirstName, token); err != nil {
-				log.Printf("Failed to send password reset email to %s: %v", user.Email, err)
-			}
-		}()
-	}
+	// Send password reset email (non-blocking)
+	go func() {
+		if err := sendPasswordResetEmailAsync(user.Email, user.Name, token); err != nil {
+			log.Printf("Failed to send password reset email to %s: %v", user.Email, err)
+		}
+	}()
 
 	return response.SuccessJSON(200, nil, "If the email exists, a password reset link has been sent")
 }
@@ -341,7 +338,7 @@ func resetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	}
 
 	// Validate reset token
-	userID, err := email.ValidateResetToken(req.Token)
+	userID, err := validateResetToken(req.Token)
 	if err != nil {
 		return response.SimpleError(400, "Invalid or expired reset token"), nil
 	}
@@ -369,7 +366,7 @@ func resetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	}
 
 	// Mark token as used
-	if err := email.MarkTokenAsUsed(req.Token); err != nil {
+	if err := markTokenAsUsed(req.Token); err != nil {
 		log.Printf("Failed to mark reset token as used: %v", err)
 	}
 
@@ -380,15 +377,8 @@ func resetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 		log.Printf("Failed to delete user sessions after password reset: %v", err)
 	}
 
-	// Send password changed email
-	emailService := email.NewEmailService()
-	if emailService.IsConfigured() {
-		go func() {
-			if err := emailService.SendPasswordChangedEmail(user.Email, user.FirstName); err != nil {
-				log.Printf("Failed to send password changed email to %s: %v", user.Email, err)
-			}
-		}()
-	}
+	// Send password changed email (we can skip this for now since it's not in our requirements)
+	// TODO: Add password changed email template if needed
 
 	// Create notification for password change
 	if err := notification.CreateNotification(
@@ -661,6 +651,128 @@ func deleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	}
 
 	return response.SuccessJSON(200, nil, "User deleted successfully")
+}
+
+// Email helper functions
+
+// sendWelcomeEmailAsync sends a welcome email via the email service
+func sendWelcomeEmailAsync(email, userName string) error {
+	emailServiceURL := getEmailServiceURL()
+
+	payload := map[string]interface{}{
+		"email":    email,
+		"userName": userName,
+	}
+
+	return callEmailService(emailServiceURL+"/send-welcome", payload)
+}
+
+// sendPasswordResetEmailAsync sends a password reset email via the email service
+func sendPasswordResetEmailAsync(email, userName, resetToken string) error {
+	emailServiceURL := getEmailServiceURL()
+
+	payload := map[string]interface{}{
+		"email":      email,
+		"userName":   userName,
+		"resetToken": resetToken,
+	}
+
+	return callEmailService(emailServiceURL+"/send-password-reset", payload)
+}
+
+// callEmailService makes an HTTP call to the email service
+func callEmailService(url string, payload map[string]interface{}) error {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal email payload: %w", err)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to call email service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("email service returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// getEmailServiceURL returns the email service URL
+func getEmailServiceURL() string {
+	if baseURL := os.Getenv("NETLIFY_FUNCTIONS_URL"); baseURL != "" {
+		return baseURL + "/email-service"
+	}
+	// Default for local development
+	return "http://localhost:8888/.netlify/functions/email-service"
+}
+
+// Password reset token functions (simplified implementation)
+type PasswordResetToken struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	UserID    primitive.ObjectID `bson:"userId"`
+	Token     string             `bson:"token"`
+	CreatedAt time.Time          `bson:"createdAt"`
+	ExpiresAt time.Time          `bson:"expiresAt"`
+	Used      bool               `bson:"used"`
+}
+
+// createPasswordResetToken creates a new password reset token
+func createPasswordResetToken(userID primitive.ObjectID) (string, error) {
+	collection := db.Database.Collection("password_reset_tokens")
+
+	// Generate token (simple implementation)
+	token := fmt.Sprintf("%d_%s", time.Now().Unix(), userID.Hex())
+
+	resetToken := PasswordResetToken{
+		ID:        primitive.NewObjectID(),
+		UserID:    userID,
+		Token:     token,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(1 * time.Hour), // 1 hour expiry
+		Used:      false,
+	}
+
+	_, err := collection.InsertOne(context.TODO(), resetToken)
+	if err != nil {
+		return "", fmt.Errorf("failed to create password reset token: %w", err)
+	}
+
+	return token, nil
+}
+
+// validateResetToken validates and returns the user ID for a reset token
+func validateResetToken(token string) (primitive.ObjectID, error) {
+	collection := db.Database.Collection("password_reset_tokens")
+
+	var resetToken PasswordResetToken
+	err := collection.FindOne(context.TODO(), bson.M{
+		"token":     token,
+		"used":      false,
+		"expiresAt": bson.M{"$gt": time.Now()},
+	}).Decode(&resetToken)
+
+	if err != nil {
+		return primitive.NilObjectID, fmt.Errorf("invalid or expired token")
+	}
+
+	return resetToken.UserID, nil
+}
+
+// markTokenAsUsed marks a reset token as used
+func markTokenAsUsed(token string) error {
+	collection := db.Database.Collection("password_reset_tokens")
+
+	_, err := collection.UpdateOne(
+		context.TODO(),
+		bson.M{"token": token},
+		bson.M{"$set": bson.M{"used": true}},
+	)
+
+	return err
 }
 
 func main() {

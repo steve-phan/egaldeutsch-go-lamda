@@ -54,7 +54,7 @@ func NewServiceFromEnv() (*Service, error) {
 			config.MaxBulkRecipients = maxBulk
 		}
 	}
-	
+
 	// Default to 10 for trial accounts
 	if config.MaxBulkRecipients == 0 {
 		config.MaxBulkRecipients = 10
@@ -109,7 +109,7 @@ func (s *Service) SendBulkEmail(emails []*Email) error {
 // SendWelcomeEmail sends a welcome email to new users
 func (s *Service) SendWelcomeEmail(userEmail, userName string) error {
 	template := s.getWelcomeEmailTemplate(userName)
-	
+
 	email := &Email{
 		To:          []string{userEmail},
 		Subject:     template.Subject,
@@ -123,7 +123,7 @@ func (s *Service) SendWelcomeEmail(userEmail, userName string) error {
 // SendPasswordResetEmail sends a password reset email
 func (s *Service) SendPasswordResetEmail(userEmail, userName, resetToken string) error {
 	template := s.getPasswordResetEmailTemplate(userName, resetToken)
-	
+
 	email := &Email{
 		To:          []string{userEmail},
 		Subject:     template.Subject,
@@ -146,7 +146,7 @@ func (s *Service) SendNewStoryNotification(subscriberEmails []string, storyTitle
 	}
 
 	template := s.getNewStoryEmailTemplate(storyTitle, storyLevel, storyID)
-	
+
 	var emails []*Email
 	for _, subscriberEmail := range subscriberEmails {
 		email := &Email{

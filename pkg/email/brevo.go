@@ -29,14 +29,14 @@ func NewBrevoProvider(apiKey, fromEmail, fromName string) *BrevoProvider {
 
 // BrevoEmail represents Brevo API email structure
 type BrevoEmail struct {
-	Sender      BrevoContact   `json:"sender"`
-	To          []BrevoContact `json:"to"`
-	CC          []BrevoContact `json:"cc,omitempty"`
-	BCC         []BrevoContact `json:"bcc,omitempty"`
-	Subject     string         `json:"subject"`
-	HTMLContent string         `json:"htmlContent,omitempty"`
-	TextContent string         `json:"textContent,omitempty"`
-	ReplyTo     *BrevoContact  `json:"replyTo,omitempty"`
+	Sender      BrevoContact      `json:"sender"`
+	To          []BrevoContact    `json:"to"`
+	CC          []BrevoContact    `json:"cc,omitempty"`
+	BCC         []BrevoContact    `json:"bcc,omitempty"`
+	Subject     string            `json:"subject"`
+	HTMLContent string            `json:"htmlContent,omitempty"`
+	TextContent string            `json:"textContent,omitempty"`
+	ReplyTo     *BrevoContact     `json:"replyTo,omitempty"`
 	Headers     map[string]string `json:"headers,omitempty"`
 }
 
@@ -107,7 +107,7 @@ func (b *BrevoProvider) SendBulkEmail(emails []*Email) error {
 		if err := b.SendEmail(email); err != nil {
 			errors = append(errors, fmt.Sprintf("email %d: %v", i+1, err))
 		}
-		
+
 		// Add small delay to avoid rate limiting
 		if i < len(emails)-1 {
 			time.Sleep(100 * time.Millisecond)

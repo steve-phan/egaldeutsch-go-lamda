@@ -42,12 +42,12 @@ type EmailTemplate struct {
 
 // EmailConfig holds email service configuration
 type EmailConfig struct {
-	Provider        string `json:"provider"`        // "brevo", "sendgrid", "ses", etc.
-	APIKey          string `json:"apiKey"`
-	FromEmail       string `json:"fromEmail"`
-	FromName        string `json:"fromName"`
-	ReplyToEmail    string `json:"replyToEmail"`
-	MaxBulkRecipients int  `json:"maxBulkRecipients"` // Max recipients per bulk email (for trial accounts)
+	Provider          string `json:"provider"` // "brevo", "sendgrid", "ses", etc.
+	APIKey            string `json:"apiKey"`
+	FromEmail         string `json:"fromEmail"`
+	FromName          string `json:"fromName"`
+	ReplyToEmail      string `json:"replyToEmail"`
+	MaxBulkRecipients int    `json:"maxBulkRecipients"` // Max recipients per bulk email (for trial accounts)
 }
 
 // EmailStats represents email sending statistics
