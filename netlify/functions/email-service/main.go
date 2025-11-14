@@ -78,13 +78,6 @@ type EmailResponse struct {
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("Email service handler called - Method: %s, Path: %s", request.HTTPMethod, request.Path)
 
-	// Connect to MongoDB
-	if err := db.Connect(); err != nil {
-		log.Printf("Database connection failed: %v", err)
-		return response.SimpleError(500, "Database connection failed"), nil
-	}
-	defer db.Disconnect()
-
 	// Handle CORS preflight requests
 	if corsResponse, handled := middleware.HandleCORS(request); handled {
 		log.Printf("CORS preflight handled")
@@ -103,7 +96,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 			return sendWelcomeEmail(request)
 		}
 		if strings.Contains(request.Path, "/send-new-story-notification") {
-			return sendNewStoryNotification(request)
+			return sendNewStoryNotificationWithDB(request)
 		}
 		if strings.Contains(request.Path, "/send") {
 			return sendEmail(request)
@@ -316,6 +309,19 @@ func sendNewStoryNotification(request events.APIGatewayProxyRequest) (events.API
 	}
 
 	return response.JSON(200, responseData)
+}
+
+// sendNewStoryNotificationWithDB handles new story notification with database connection
+func sendNewStoryNotificationWithDB(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Connect to MongoDB only for this function that needs it
+	if err := db.Connect(); err != nil {
+		log.Printf("Database connection failed: %v", err)
+		return response.SimpleError(500, "Database connection failed"), nil
+	}
+	defer db.Disconnect()
+
+	// Call the original function
+	return sendNewStoryNotification(request)
 }
 
 // getEmailConfig returns masked email configuration
