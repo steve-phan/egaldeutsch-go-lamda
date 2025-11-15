@@ -16,12 +16,15 @@ type Email struct {
 	BCC         []string          `json:"bcc,omitempty"`
 	From        string            `json:"from"`
 	FromName    string            `json:"fromName,omitempty"`
-	Subject     string            `json:"subject"`
+	Subject     string            `json:"subject,omitempty"`
 	HTMLContent string            `json:"htmlContent,omitempty"`
 	TextContent string            `json:"textContent,omitempty"`
 	ReplyTo     string            `json:"replyTo,omitempty"`
 	Headers     map[string]string `json:"headers,omitempty"`
 	Attachments []Attachment      `json:"attachments,omitempty"`
+	// Template support
+	TemplateID int                    `json:"templateId,omitempty"`
+	Params     map[string]interface{} `json:"params,omitempty"`
 }
 
 // Attachment represents an email attachment
@@ -48,6 +51,10 @@ type EmailConfig struct {
 	FromName          string `json:"fromName"`
 	ReplyToEmail      string `json:"replyToEmail"`
 	MaxBulkRecipients int    `json:"maxBulkRecipients"` // Max recipients per bulk email (for trial accounts)
+	// Template IDs for different email types
+	WelcomeTemplateID       int `json:"welcomeTemplateId,omitempty"`
+	PasswordResetTemplateID int `json:"passwordResetTemplateId,omitempty"`
+	NewStoryTemplateID      int `json:"newStoryTemplateId,omitempty"`
 }
 
 // EmailStats represents email sending statistics

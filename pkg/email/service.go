@@ -46,7 +46,9 @@ func NewServiceFromEnv() (*Service, error) {
 		FromEmail:    os.Getenv("EMAIL_FROM"),
 		FromName:     getEnvOrDefault("EMAIL_FROM_NAME", "EgalDeutsch"),
 		ReplyToEmail: os.Getenv("EMAIL_REPLY_TO"),
-	} // Parse max bulk recipients
+	}
+
+	// Parse max bulk recipients
 	if maxBulkStr := os.Getenv("EMAIL_MAX_BULK_RECIPIENTS"); maxBulkStr != "" {
 		if maxBulk, err := strconv.Atoi(maxBulkStr); err == nil {
 			config.MaxBulkRecipients = maxBulk
@@ -56,6 +58,25 @@ func NewServiceFromEnv() (*Service, error) {
 	// Default to 10 for trial accounts
 	if config.MaxBulkRecipients == 0 {
 		config.MaxBulkRecipients = 10
+	}
+
+	// Parse template IDs
+	if welcomeTemplateStr := getEnvOrDefault("EMAIL_WELCOME_TEMPLATE_ID", "1"); welcomeTemplateStr != "" {
+		if templateID, err := strconv.Atoi(welcomeTemplateStr); err == nil {
+			config.WelcomeTemplateID = templateID
+		}
+	}
+
+	if resetTemplateStr := getEnvOrDefault("EMAIL_PASSWORD_RESET_TEMPLATE_ID", "3"); resetTemplateStr != "" {
+		if templateID, err := strconv.Atoi(resetTemplateStr); err == nil {
+			config.PasswordResetTemplateID = templateID
+		}
+	}
+
+	if storyTemplateStr := os.Getenv("EMAIL_NEW_STORY_TEMPLATE_ID"); storyTemplateStr != "" {
+		if templateID, err := strconv.Atoi(storyTemplateStr); err == nil {
+			config.NewStoryTemplateID = templateID
+		}
 	}
 
 	return NewService(config)
@@ -106,6 +127,11 @@ func (s *Service) SendBulkEmail(emails []*Email) error {
 
 // SendWelcomeEmail sends a welcome email to new users
 func (s *Service) SendWelcomeEmail(userEmail, userName string) error {
+	// Use template ID if configured, otherwise use HTML template
+	if s.config.WelcomeTemplateID > 0 {
+		return s.SendWelcomeEmailWithTemplate(userEmail, userName, s.config.WelcomeTemplateID)
+	}
+
 	template := s.getWelcomeEmailTemplate(userName)
 
 	email := &Email{
@@ -120,6 +146,11 @@ func (s *Service) SendWelcomeEmail(userEmail, userName string) error {
 
 // SendPasswordResetEmail sends a password reset email
 func (s *Service) SendPasswordResetEmail(userEmail, userName, resetToken string) error {
+	// Use template ID if configured, otherwise use HTML template
+	if s.config.PasswordResetTemplateID > 0 {
+		return s.SendPasswordResetEmailWithTemplate(userEmail, userName, resetToken, s.config.PasswordResetTemplateID)
+	}
+
 	template := s.getPasswordResetEmailTemplate(userName, resetToken)
 
 	email := &Email{
@@ -157,6 +188,41 @@ func (s *Service) SendNewStoryNotification(subscriberEmails []string, storyTitle
 	}
 
 	return s.SendBulkEmail(emails)
+}
+
+// SendEmailWithTemplate sends an email using a Brevo template ID
+func (s *Service) SendEmailWithTemplate(userEmail string, templateID int, params map[string]interface{}) error {
+	email := &Email{
+		To:         []string{userEmail},
+		TemplateID: templateID,
+		Params:     params,
+	}
+
+	return s.SendEmail(email)
+}
+
+// SendWelcomeEmailWithTemplate sends a welcome email using template ID
+func (s *Service) SendWelcomeEmailWithTemplate(userEmail, userName string, templateID int) error {
+	params := map[string]interface{}{
+		"userName":  userName,
+		"userEmail": userEmail,
+	}
+
+	return s.SendEmailWithTemplate(userEmail, templateID, params)
+}
+
+// SendPasswordResetEmailWithTemplate sends a password reset email using template ID
+func (s *Service) SendPasswordResetEmailWithTemplate(userEmail, userName, resetToken string, templateID int) error {
+	resetURL := fmt.Sprintf("https://egaldeutsch.com/auth/reset-password?token=%s", resetToken)
+
+	params := map[string]interface{}{
+		"userName":   userName,
+		"userEmail":  userEmail,
+		"resetToken": resetToken,
+		"resetURL":   resetURL,
+	}
+
+	return s.SendEmailWithTemplate(userEmail, templateID, params)
 }
 
 // GetConfig returns the current email configuration (sensitive data masked)

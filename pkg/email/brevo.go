@@ -33,11 +33,14 @@ type BrevoEmail struct {
 	To          []BrevoContact    `json:"to"`
 	CC          []BrevoContact    `json:"cc,omitempty"`
 	BCC         []BrevoContact    `json:"bcc,omitempty"`
-	Subject     string            `json:"subject"`
+	Subject     string            `json:"subject,omitempty"`
 	HTMLContent string            `json:"htmlContent,omitempty"`
 	TextContent string            `json:"textContent,omitempty"`
 	ReplyTo     *BrevoContact     `json:"replyTo,omitempty"`
 	Headers     map[string]string `json:"headers,omitempty"`
+	// Template support
+	TemplateID int                    `json:"templateId,omitempty"`
+	Params     map[string]interface{} `json:"params,omitempty"`
 }
 
 // BrevoContact represents a contact in Brevo API
@@ -128,10 +131,23 @@ func (b *BrevoProvider) convertToBrevoEmail(email *Email) *BrevoEmail {
 			Email: b.FromEmail,
 			Name:  b.FromName,
 		},
-		Subject:     email.Subject,
-		HTMLContent: email.HTMLContent,
-		TextContent: email.TextContent,
-		Headers:     email.Headers,
+		Headers: email.Headers,
+	}
+
+	// Handle template vs regular email
+	if email.TemplateID > 0 {
+		// Using template
+		brevoEmail.TemplateID = email.TemplateID
+		brevoEmail.Params = email.Params
+		// Subject can be overridden even with templates
+		if email.Subject != "" {
+			brevoEmail.Subject = email.Subject
+		}
+	} else {
+		// Regular email with content
+		brevoEmail.Subject = email.Subject
+		brevoEmail.HTMLContent = email.HTMLContent
+		brevoEmail.TextContent = email.TextContent
 	}
 
 	// Convert recipients
