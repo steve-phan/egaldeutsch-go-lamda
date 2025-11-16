@@ -50,18 +50,6 @@ type QuestionResponse struct {
 }
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Connect to MongoDB
-	if err := db.Connect(); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Body:       `{"error": "Database connection failed"}`,
-			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
-			},
-		}, nil
-	}
-	defer db.Disconnect()
 
 	// Route based on HTTP method and path
 	switch request.HTTPMethod {
@@ -101,7 +89,7 @@ func createQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 		return errorResponse(400, "Invalid story ID")
 	}
 
-	storiesCollection := db.Database.Collection("stories")
+	storiesCollection, _ := db.GetCollection(db.Collections.Stories)
 	var story models.Story
 	err = storiesCollection.FindOne(context.Background(), bson.M{"_id": storyID}).Decode(&story)
 	if err != nil {
@@ -140,8 +128,8 @@ func createQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	}
 
 	// Insert question into database
-	collection := db.Database.Collection("questions")
-	_, err = collection.InsertOne(context.Background(), question)
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
+	_, err = questionCollection.InsertOne(context.Background(), question)
 	if err != nil {
 		return errorResponse(500, "Failed to create question")
 	}
@@ -166,10 +154,10 @@ func getQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 		return errorResponse(400, "Invalid question ID")
 	}
 
-	collection := db.Database.Collection("questions")
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
 	var question models.Question
 
-	err = collection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&question)
+	err = questionCollection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&question)
 	if err != nil {
 		return errorResponse(404, "Question not found")
 	}
@@ -215,9 +203,9 @@ func listQuestions(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 		filter["storyId"] = objectID
 	}
 
-	collection := db.Database.Collection("questions")
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
 
-	total, err := collection.CountDocuments(context.Background(), filter)
+	total, err := questionCollection.CountDocuments(context.Background(), filter)
 	if err != nil {
 		return errorResponse(500, "Failed to count questions")
 	}
@@ -225,7 +213,7 @@ func listQuestions(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	skip := (page - 1) * limit
 	opts := options.Find().SetSkip(int64(skip)).SetLimit(int64(limit)).SetSort(bson.M{"order": 1})
 
-	cursor, err := collection.Find(context.Background(), filter, opts)
+	cursor, err := questionCollection.Find(context.Background(), filter, opts)
 	if err != nil {
 		return errorResponse(500, "Failed to retrieve questions")
 	}
@@ -289,7 +277,7 @@ func updateQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	}
 
 	// Update the question in database
-	collection := db.Database.Collection("questions")
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
 	update := bson.M{
 		"$set": bson.M{
 			"question":      question.Question,
@@ -307,7 +295,7 @@ func updateQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 		},
 	}
 
-	result := collection.FindOneAndUpdate(
+	result := questionCollection.FindOneAndUpdate(
 		context.Background(),
 		bson.M{"_id": objectID},
 		update,
@@ -339,9 +327,9 @@ func deleteQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 		return errorResponse(400, "Invalid question ID")
 	}
 
-	collection := db.Database.Collection("questions")
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
 	// In simplified workflow, delete means permanent removal
-	result, err := collection.DeleteOne(
+	result, err := questionCollection.DeleteOne(
 		context.Background(),
 		bson.M{"_id": objectID},
 	)

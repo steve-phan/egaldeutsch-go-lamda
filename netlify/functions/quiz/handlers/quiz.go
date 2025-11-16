@@ -22,7 +22,7 @@ import (
 func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyResponse, error) {
 	headers := services.GetCORSHeaders()
 
-	storiesCollection, questionsCollection, _, err := services.GetCollections()
+	collections, err := services.GetCollections()
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -43,7 +43,7 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 	// Get story
 	var story models.Story
 	filter := bson.M{"_id": id, "status": "published"}
-	err = storiesCollection.FindOne(ctx, filter).Decode(&story)
+	err = collections[0].FindOne(ctx, filter).Decode(&story)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return events.APIGatewayProxyResponse{
@@ -63,7 +63,7 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 	filter = bson.M{"storyId": id}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "order", Value: 1}}) // Sort by order field ascending
-	questionsCursor, err := questionsCollection.Find(ctx, filter, findOptions)
+	questionsCursor, err := collections[1].Find(ctx, filter, findOptions)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -128,7 +128,8 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := services.GetCORSHeaders()
 
-	_, questionsCollection, submissionsCollection, err := services.GetCollections()
+	collections, err := services.GetCollections()
+
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -160,7 +161,7 @@ func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "order", Value: 1}}) // Sort by order field ascending
 	var questionsCursor *mongo.Cursor
-	questionsCursor, err = questionsCollection.Find(ctx, filter, findOptions)
+	questionsCursor, err = collections[1].Find(ctx, filter, findOptions)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -218,7 +219,7 @@ func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 		SubmittedAt:    time.Now(),
 	}
 
-	_, err = submissionsCollection.InsertOne(ctx, submission)
+	_, err = collections[2].InsertOne(ctx, submission)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,

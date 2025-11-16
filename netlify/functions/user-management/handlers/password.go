@@ -26,7 +26,7 @@ func ForgotPassword(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	}
 
 	// Find user by email
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	var user models.User
 	err := collection.FindOne(context.TODO(), bson.M{"email": req.Email}).Decode(&user)
 
@@ -83,7 +83,7 @@ func ResetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	}
 
 	// Update user password
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	var user models.User
 	err = collection.FindOneAndUpdate(
 		context.TODO(),

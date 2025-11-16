@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -16,20 +15,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var questionsCollection *mongo.Collection
-
-func init() {
-	// Connect to MongoDB
-	if err := db.Connect(); err != nil {
-		fmt.Printf("Error connecting to MongoDB: %v\n", err)
-		os.Exit(1)
-	}
-
-	questionsCollection = db.Database.Collection("questions")
-}
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Set CORS headers
@@ -83,7 +69,9 @@ func getQuestionsByStoryID(ctx context.Context, storyID string, headers map[stri
 		}, nil
 	}
 
-	cursor, err := questionsCollection.Find(ctx, bson.M{"storyId": id})
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
+
+	cursor, err := questionCollection.Find(ctx, bson.M{"storyId": id})
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -130,8 +118,9 @@ func createQuestion(ctx context.Context, req events.APIGatewayProxyRequest, head
 
 	question.ID = primitive.NewObjectID()
 	question.CreatedAt = time.Now()
+	questionCollection, _ := db.GetCollection(db.Collections.Questions)
 
-	_, err := questionsCollection.InsertOne(ctx, question)
+	_, err := questionCollection.InsertOne(ctx, question)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,

@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
+	"egaldeutsch-serverless/netlify/functions/user-management/services"
 	"egaldeutsch-serverless/netlify/functions/user-management/types"
 	"egaldeutsch-serverless/pkg/auth"
 	"egaldeutsch-serverless/pkg/response"
@@ -29,14 +29,8 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 
 	log.Printf("Login attempt for username/email: %s", loginReq.Username)
 
-	// Ensure database connection
-	if err := db.EnsureConnection(); err != nil {
-		log.Printf("Login error - database connection failed: %v", err)
-		return response.SimpleError(500, "Database connection error"), nil
-	}
-
 	// Find user by username or email
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	var user models.User
 	err := collection.FindOne(context.TODO(), bson.M{
 		"$or": []bson.M{

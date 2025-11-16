@@ -8,6 +8,7 @@ import (
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
+	"egaldeutsch-serverless/netlify/functions/user-management/services"
 	"egaldeutsch-serverless/netlify/functions/user-management/types"
 	"egaldeutsch-serverless/pkg/auth"
 	"egaldeutsch-serverless/pkg/middleware"
@@ -73,7 +74,7 @@ func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	}
 
 	// Find users
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		return response.SimpleError(500, "Failed to fetch users"), nil
@@ -119,7 +120,7 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		return response.SimpleError(400, "Invalid request format"), nil
 	}
 
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	updateFields := bson.M{"updatedAt": time.Now()}
 
 	// Update basic profile fields
@@ -231,7 +232,7 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	}
 
 	// Check if user exists
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	var targetUser models.User
 	err = collection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&targetUser)
 	if err != nil {
@@ -239,7 +240,7 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	}
 
 	// Delete user's sessions first
-	sessionCollection := db.Database.Collection("sessions")
+	sessionCollection := db.Database.Collection("sessions") //TODO remove session
 	_, err = sessionCollection.DeleteMany(context.TODO(), bson.M{"userId": objectID})
 	if err != nil {
 		log.Printf("Failed to delete user sessions: %v", err)

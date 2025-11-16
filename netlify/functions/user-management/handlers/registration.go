@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/user-management/services"
 	"egaldeutsch-serverless/netlify/functions/user-management/types"
@@ -34,7 +33,7 @@ func RegisterUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxy
 	}
 
 	// Check if username or email already exists
-	collection := db.Database.Collection("users")
+	collection, _ := services.GetUserCollection()
 	var existingUser models.User
 	err := collection.FindOne(context.TODO(), bson.M{
 		"$or": []bson.M{

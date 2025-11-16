@@ -13,23 +13,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-// getCollections ensures database connection and returns collections
-func getCollections() (*mongo.Collection, error) {
-	if err := db.EnsureConnection(); err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
-
-	database, err := db.GetDatabase()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database: %w", err)
-	}
-
-	submissionsCollection := database.Collection("submissions")
-	return submissionsCollection, nil
-}
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Set CORS headers
@@ -61,7 +45,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func getLeaderboard(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
-	submissionsCollection, err := getCollections()
+	submissionsCollection, err := db.GetCollection(db.Collections.Submissions)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,

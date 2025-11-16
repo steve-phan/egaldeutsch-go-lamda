@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"egaldeutsch-serverless/db"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -23,7 +21,11 @@ type PasswordResetToken struct {
 
 // CreatePasswordResetToken creates a new password reset token
 func CreatePasswordResetToken(userID primitive.ObjectID) (string, error) {
-	collection := db.Database.Collection("password_reset_tokens")
+	collection, err := GetPasswordResetTokenCollection()
+
+	if err != nil {
+		return "", fmt.Errorf("failed to get database collection: %w", err)
+	}
 
 	// Generate token (simple implementation)
 	token := fmt.Sprintf("%d_%s", time.Now().Unix(), userID.Hex())
@@ -37,8 +39,7 @@ func CreatePasswordResetToken(userID primitive.ObjectID) (string, error) {
 		Used:      false,
 	}
 
-	_, err := collection.InsertOne(context.TODO(), resetToken)
-	if err != nil {
+	if _, err := collection.InsertOne(context.TODO(), resetToken); err != nil {
 		return "", fmt.Errorf("failed to create password reset token: %w", err)
 	}
 
@@ -47,7 +48,7 @@ func CreatePasswordResetToken(userID primitive.ObjectID) (string, error) {
 
 // ValidateResetToken validates and returns the user ID for a reset token
 func ValidateResetToken(token string) (primitive.ObjectID, error) {
-	collection := db.Database.Collection("password_reset_tokens")
+	collection, _ := GetPasswordResetTokenCollection()
 
 	var resetToken PasswordResetToken
 	err := collection.FindOne(context.TODO(), bson.M{
@@ -65,7 +66,7 @@ func ValidateResetToken(token string) (primitive.ObjectID, error) {
 
 // MarkTokenAsUsed marks a reset token as used
 func MarkTokenAsUsed(token string) error {
-	collection := db.Database.Collection("password_reset_tokens")
+	collection, _ := GetPasswordResetTokenCollection()
 
 	_, err := collection.UpdateOne(
 		context.TODO(),

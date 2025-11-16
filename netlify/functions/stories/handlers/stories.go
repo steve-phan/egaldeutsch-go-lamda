@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/stories/services"
 
@@ -20,7 +21,7 @@ import (
 func GetAllStories(ctx context.Context, status string) (events.APIGatewayProxyResponse, error) {
 	headers := services.GetCORSHeaders()
 
-	storiesCollection, err := services.GetStoriesCollection()
+	storiesCollection, err := db.GetCollection(db.Collections.Stories)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -86,7 +87,7 @@ func GetAllStories(ctx context.Context, status string) (events.APIGatewayProxyRe
 func GetStoryByID(ctx context.Context, storyID string) (events.APIGatewayProxyResponse, error) {
 	headers := services.GetCORSHeaders()
 
-	storiesCollection, err := services.GetStoriesCollection()
+	storiesCollection, err := db.GetCollection(db.Collections.Stories)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
@@ -148,7 +149,7 @@ func GetStoryByID(ctx context.Context, storyID string) (events.APIGatewayProxyRe
 func CreateStory(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := services.GetCORSHeaders()
 
-	storiesCollection, err := services.GetStoriesCollection()
+	storiesCollection, err := db.GetCollection(db.Collections.Stories)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusInternalServerError,
