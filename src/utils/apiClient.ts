@@ -103,7 +103,7 @@ export const protectedApi = {
 
   // AI generation (admins)
   generateQuestions: (storyId: string) =>
-    apiClient.post(`/ai-generator?story_id=${storyId}`),
+    apiClient.post(`/ai-generator?type=questions&story_id=${storyId}`),
 
   // Quiz management
   getQuizs: () => apiClient.get("/quiz-management"),

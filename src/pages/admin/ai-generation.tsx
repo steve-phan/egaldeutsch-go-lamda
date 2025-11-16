@@ -42,7 +42,7 @@ const AIGenerationPage: React.FC = () => {
       setError("");
 
       const response = await publicApi.getStories(); // Instead of axios.get(`${API_BASE_URL}/stories-management`)
-      const allStories = response.data?.stories || [];
+      const allStories = response.data?.data || [];
 
       // Filter only published stories that don't have AI-generated questions yet
       const availableStories = allStories.filter(

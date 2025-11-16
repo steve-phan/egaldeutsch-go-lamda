@@ -57,7 +57,7 @@ func GetAllStories(ctx context.Context) (events.APIGatewayProxyResponse, error) 
 
 	response := map[string]interface{}{
 		"success": true,
-		"data":    stories,
+		"data":    stories, // need to change the field to the stories
 		"message": fmt.Sprintf("Found %d stories", len(stories)),
 	}
 
