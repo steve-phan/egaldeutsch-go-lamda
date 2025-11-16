@@ -41,10 +41,11 @@ const AIGenerationPage: React.FC = () => {
       setLoading(true);
       setError("");
 
-      const response = await publicApi.getStories(); // Instead of axios.get(`${API_BASE_URL}/stories-management`)
-      const allStories = response.data?.data || [];
+      // Use protectedApi with status filter
+      const response = await publicApi.getStories(); // This will get all stories (admin access)
+      const allStories = response.data || [];
 
-      // Filter only published stories that don't have AI-generated questions yet
+      // Filter client-side only if needed (but consider moving to backend)
       const availableStories = allStories.filter(
         (story: any) =>
           story.status === "published" && !story.isAIQuestionsGenerated

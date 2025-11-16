@@ -302,6 +302,7 @@ func listStories(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 // updateStory updates an existing story
 func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	storyID := request.PathParameters["id"]
+	log.Printf("requestid is , %s", storyID)
 	objectID, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
 		return errorResponse(400, "Invalid story ID")

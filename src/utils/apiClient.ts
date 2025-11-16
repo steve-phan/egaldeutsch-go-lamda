@@ -60,7 +60,8 @@ apiClient.interceptors.response.use(
 // Public API methods (no auth required)
 export const publicApi = {
   // Stories
-  getStories: () => apiClient.get("/stories"),
+  getStories: (status?: string) =>
+    apiClient.get(status ? `/stories?status=${status}` : "/stories"),
   getStoryById: (id: string) => apiClient.get(`/stories?id=${id}`),
 
   // Quiz (public viewing)
@@ -118,6 +119,21 @@ export const protectedApi = {
     apiClient.put(`/questions-management/${questionId}`, data),
   deleteQuestion: (questionId: string) =>
     apiClient.delete(`/questions-management/${questionId}`),
+
+  // Stories with filtering (for admin use)
+  getStories: (status?: string) =>
+    apiClient.get(
+      status ? `/stories-management?status=${status}` : "/stories-management"
+    ),
+
+  updateStoryStatus: (id: string, status: string) =>
+    apiClient.patch(`/stories-management/${id}`, { status }),
+
+  // Specific method for AI generation filtering
+  getStoriesForAIGeneration: () =>
+    apiClient.get(
+      "/stories-management?status=published&aiQuestionsGenerated=false"
+    ),
 };
 
 // Utility functions

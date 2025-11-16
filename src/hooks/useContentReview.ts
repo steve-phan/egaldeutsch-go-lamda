@@ -13,11 +13,11 @@ export const useContentReview = () => {
       setLoading(true);
       setError("");
 
-      // Load all content types with proper error handling
+      // This is actually correct - admins should see all content
       const [storiesRes, questionsRes, quizzesRes] = await Promise.all([
-        publicApi.getStories().catch(() => ({ data: { stories: [] } })),
-        protectedApi.getQuestions().catch(() => ({ data: { questions: [] } })),
-        protectedApi.getQuizs().catch(() => ({ data: { quizzes: [] } })),
+        protectedApi.getStories(), // Use protectedApi for admin functionality
+        protectedApi.getQuestions(),
+        protectedApi.getQuizs(),
       ]);
 
       const allItems: ContentItem[] = [];
@@ -68,7 +68,7 @@ export const useContentReview = () => {
             ? "questions-management"
             : "quiz-management";
 
-        await protectedApi.updateStory(id, { status }); // Or create a generic update method
+        await protectedApi.updateStoryStatus(id, status); // Or create a generic update method
 
         return true;
       } catch (err: any) {

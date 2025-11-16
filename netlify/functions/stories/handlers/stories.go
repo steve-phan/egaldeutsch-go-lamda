@@ -17,7 +17,7 @@ import (
 )
 
 // GetAllStories retrieves all published stories
-func GetAllStories(ctx context.Context) (events.APIGatewayProxyResponse, error) {
+func GetAllStories(ctx context.Context, status string) (events.APIGatewayProxyResponse, error) {
 	headers := services.GetCORSHeaders()
 
 	storiesCollection, err := services.GetStoriesCollection()
@@ -28,9 +28,14 @@ func GetAllStories(ctx context.Context) (events.APIGatewayProxyResponse, error) 
 			Body:       `{"success": false, "error": "Database connection failed"}`,
 		}, nil
 	}
+	filterStatus := ""
+	filter := bson.M{}
 
-	// Only fetch published stories
-	filter := bson.M{"status": "published"}
+	if status != "" {
+		filterStatus = status
+		filter = bson.M{"status": filterStatus}
+	}
+
 	cursor, err := storiesCollection.Find(ctx, filter)
 	if err != nil {
 		return events.APIGatewayProxyResponse{

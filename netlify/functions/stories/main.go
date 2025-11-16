@@ -26,10 +26,14 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	if id, exists := req.QueryStringParameters["id"]; exists && id != "" {
 		storyID = id
 	}
+	storyStatus := ""
+	if status, exists := req.QueryStringParameters["status"]; exists && status != "" {
+		storyStatus = status
+	}
 
 	switch {
 	case method == "GET" && storyID == "":
-		return handlers.GetAllStories(ctx)
+		return handlers.GetAllStories(ctx, storyStatus)
 	case method == "GET" && storyID != "":
 		return handlers.GetStoryByID(ctx, storyID)
 	case method == "POST":

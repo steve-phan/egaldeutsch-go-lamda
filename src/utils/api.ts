@@ -13,7 +13,7 @@ import { publicApi } from "./apiClient";
 // Stories API
 export const fetchStories = async (): Promise<Story[]> => {
   try {
-    const response = await publicApi.getStories();
+    const response = await publicApi.getStories("published");
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
