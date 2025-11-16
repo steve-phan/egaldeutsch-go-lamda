@@ -14,12 +14,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
 import { Alert, AlertDescription } from "../../components/ui/alert";
-import axios from "axios";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { protectedApi, publicApi } from "@/utils/apiClient";
 
 interface Question {
   id: string;
@@ -65,7 +60,7 @@ const QuestionsPage: React.FC = () => {
     try {
       setLoading(true);
       setError("");
-      const response = await axios.get(`${API_BASE_URL}/questions-management`);
+      const response = await protectedApi.getQuestions();
       setQuestions(response.data?.questions || []);
     } catch (err: any) {
       console.error("Error fetching questions:", err);

@@ -5,9 +5,7 @@ import {
   RegisterData,
   AuthContextType,
   UserRole,
-  AuthResponse,
 } from "../types";
-import axios from "axios";
 import { publicApi, TOKEN_KEY, USER_KEY } from "@/utils/apiClient";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,9 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Clear localStorage
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-
-    // Clear axios header
-    delete axios.defaults.headers.common["Authorization"];
   };
 
   const hasRole = (role: UserRole): boolean => {

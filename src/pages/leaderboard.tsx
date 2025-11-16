@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../components/layout";
-import axios from "axios";
+import { publicApi } from "@/utils/apiClient";
 
 interface LeaderboardEntry {
   userId: string;
@@ -35,7 +35,7 @@ const LeaderboardPage: React.FC = () => {
       setError(null);
 
       const apiUrl = process.env.GATSBY_API_URL || "/.netlify/functions";
-      const response = await axios.get(`${apiUrl}/leaderboard?limit=100`);
+      const response = await publicApi.getLeaderboard();
 
       if (response.data.success) {
         setData(response.data.data);

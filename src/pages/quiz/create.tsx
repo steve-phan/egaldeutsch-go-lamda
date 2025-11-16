@@ -15,13 +15,7 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Badge } from "../../components/ui/badge";
-// import { Checkbox } from '../../components/ui/checkbox'; // Will implement checkbox inline
-import axios from "axios";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { protectedApi, publicApi } from "@/utils/apiClient";
 
 interface Story {
   id: string;
@@ -78,7 +72,7 @@ const CreateQuizPage: React.FC = () => {
     try {
       setLoadingStories(true);
       // Load published stories for quiz creation
-      const response = await axios.get(`${API_BASE_URL}/stories-management`);
+      const response = await publicApi.getStories();
       if (response.data?.stories) {
         setStories(
           response.data.stories.filter((s: Story) => s.status === "published")
@@ -95,9 +89,10 @@ const CreateQuizPage: React.FC = () => {
   const loadQuestions = async (storyId: string) => {
     try {
       setLoadingQuestions(true);
-      const response = await axios.get(
-        `${API_BASE_URL}/questions-management?storyId=${storyId}`
-      );
+      // const response = await axios.get(
+      //   `${API_BASE_URL}/questions-management?storyId=${storyId}`
+      // );
+      const response = await publicApi.getQuestionsByStoryId(storyId);
       if (response.data?.questions) {
         // Only show published questions
         setQuestions(
@@ -166,10 +161,12 @@ const CreateQuizPage: React.FC = () => {
         questionIds: formData.questionIds,
       };
 
-      const response = await axios.post(
-        `${API_BASE_URL}/quiz-management`,
-        quizData
-      );
+      // const response = await axios.post(
+      //   `${API_BASE_URL}/quiz-management`,
+      //   quizData
+      // );
+
+      const response = await protectedApi.createQuiz(quizData);
 
       if (response.data) {
         setSuccess(true);

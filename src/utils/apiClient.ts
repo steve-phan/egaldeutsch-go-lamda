@@ -69,6 +69,10 @@ export const publicApi = {
   submitQuiz: (storyId: string, answers: number[]) =>
     apiClient.post(`/quiz?story_id=${storyId}&action=submit`, { answers }),
 
+  // Questions
+  getQuestionsByStoryId: (storyId: string) =>
+    apiClient.get(`/questions?storyId=${storyId}`),
+
   // Auth endpoints
   login: (credentials: any) =>
     apiClient.post("/user-management/login", credentials),
@@ -98,8 +102,8 @@ export const protectedApi = {
     apiClient.delete(`/stories-management/${storyId}`),
 
   // AI generation (admins)
-  generateQuestions: (storyId: string, data: any) =>
-    apiClient.post(`/ai-generator?story_id=${storyId}`, data),
+  generateQuestions: (storyId: string) =>
+    apiClient.post(`/ai-generator?story_id=${storyId}`),
 
   // Quiz management
   getQuizs: () => apiClient.get("/quiz-management"),

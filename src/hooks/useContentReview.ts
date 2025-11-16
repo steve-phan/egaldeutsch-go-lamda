@@ -1,11 +1,7 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 import { ContentItem } from "../types/content";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { protectedApi, publicApi } from "@/utils/apiClient";
 
 export const useContentReview = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -19,15 +15,9 @@ export const useContentReview = () => {
 
       // Load all content types with proper error handling
       const [storiesRes, questionsRes, quizzesRes] = await Promise.all([
-        axios
-          .get(`${API_BASE_URL}/stories-management`)
-          .catch(() => ({ data: { stories: [] } })),
-        axios
-          .get(`${API_BASE_URL}/questions-management`)
-          .catch(() => ({ data: { questions: [] } })),
-        axios
-          .get(`${API_BASE_URL}/quiz-management`)
-          .catch(() => ({ data: { quizzes: [] } })),
+        publicApi.getStories().catch(() => ({ data: { stories: [] } })),
+        protectedApi.getQuestions().catch(() => ({ data: { questions: [] } })),
+        protectedApi.getQuizs().catch(() => ({ data: { quizzes: [] } })),
       ]);
 
       const allItems: ContentItem[] = [];
@@ -78,10 +68,7 @@ export const useContentReview = () => {
             ? "questions-management"
             : "quiz-management";
 
-        await axios.patch(`${API_BASE_URL}/${endpoint}/${id}/status`, {
-          status,
-          comment,
-        });
+        await protectedApi.updateStory(id, { status }); // Or create a generic update method
 
         return true;
       } catch (err: any) {

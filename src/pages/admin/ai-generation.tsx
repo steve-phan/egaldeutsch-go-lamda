@@ -13,12 +13,7 @@ import { Badge } from "../../components/ui/badge";
 import { AIGenerationPanel } from "../../components/organisms/AIGenerationPanel";
 import { LoadingSpinner } from "../../components/atoms/LoadingSpinner";
 import { ErrorAlert } from "../../components/atoms/ErrorAlert";
-import axios from "axios";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { protectedApi, publicApi } from "@/utils/apiClient";
 
 interface Story {
   id: string;
@@ -46,7 +41,7 @@ const AIGenerationPage: React.FC = () => {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(`${API_BASE_URL}/stories-management`);
+      const response = await publicApi.getStories(); // Instead of axios.get(`${API_BASE_URL}/stories-management`)
       const allStories = response.data?.stories || [];
 
       // Filter only published stories that don't have AI-generated questions yet

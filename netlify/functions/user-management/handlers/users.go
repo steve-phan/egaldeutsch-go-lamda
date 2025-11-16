@@ -10,6 +10,7 @@ import (
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/user-management/types"
 	"egaldeutsch-serverless/pkg/auth"
+	"egaldeutsch-serverless/pkg/middleware"
 	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -45,13 +46,19 @@ func GetUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 // ListUsers returns a list of users (admin/reviewer only)
 func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session and check admin/reviewer role using auth package
-	_, err := auth.ValidateSessionWithRole(request, models.RoleAdmin, models.RoleReviewer)
+	// // Validate session and check admin/reviewer role using auth package
+	// _, err := auth.ValidateSessionWithRole(request, models.RoleAdmin, models.RoleReviewer)
+	// if err != nil {
+	// 	if err.Error() == "insufficient permissions" {
+	// 		return response.SimpleError(403, "Insufficient permissions"), nil
+	// 	}
+	// 	return response.SimpleError(401, "Unauthorized 1"), nil
+	// }
+
+	//validate jwt token
+	_, err := middleware.ValidateJWT(request)
 	if err != nil {
-		if err.Error() == "insufficient permissions" {
-			return response.SimpleError(403, "Insufficient permissions"), nil
-		}
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleError(401, "Unauthorized 2"), nil
 	}
 
 	// Get query parameters for filtering
@@ -101,6 +108,7 @@ func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 // UpdateUserProfile updates user profile information
 func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Validate session using auth package
+
 	user, err := auth.ValidateSession(request)
 	if err != nil {
 		return response.SimpleError(401, "Unauthorized"), nil

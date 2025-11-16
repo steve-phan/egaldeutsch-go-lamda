@@ -1,9 +1,15 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
 import { Button } from "../ui/button";
 import { Alert, AlertDescription } from "../ui/alert";
 import { LoadingSpinner } from "../atoms/LoadingSpinner";
+import { protectedApi } from "@/utils/apiClient";
 
 interface AIGenerationPanelProps {
   storyId: string;
@@ -21,11 +27,6 @@ interface GenerationResult {
   questionIds?: string[];
 }
 
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
-
 export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
   storyId,
   storyTitle,
@@ -38,27 +39,28 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
 
   const handleGenerate = async (type: GenerationType) => {
     setGenerating(true);
-    setProgress(`🤖 Generating ${type === "both" ? "questions and quiz" : type} with AI...`);
+    setProgress(
+      `🤖 Generating ${
+        type === "both" ? "questions and quiz" : type
+      } with AI...`
+    );
     setError("");
     setResult(null);
 
     try {
-      const response = await axios.post<GenerationResult>(
-        `${API_BASE_URL}/ai-generator?type=${type}&story_id=${storyId}`,
-        {},
-        {
-          timeout: 90000, // 90 second timeout for AI generation
-        }
-      );
+      const response = await protectedApi.generateQuestions(storyId);
 
       setResult(response.data);
       setProgress("");
-      
+
       if (onGenerationComplete) {
         onGenerationComplete();
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || "Failed to generate content";
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to generate content";
       setError(errorMsg);
       setProgress("");
     } finally {
@@ -126,7 +128,8 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
               ✅ {result.message}
               {result.questionsCount && (
                 <div className="mt-2 text-sm">
-                  Generated {result.questionsCount} questions. Content saved to draft status for review.
+                  Generated {result.questionsCount} questions. Content saved to
+                  draft status for review.
                 </div>
               )}
             </AlertDescription>
@@ -134,10 +137,17 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
         )}
 
         <div className="mt-4 text-sm text-muted-foreground">
-          <p className="mb-2">💡 <strong>How it works:</strong></p>
+          <p className="mb-2">
+            💡 <strong>How it works:</strong>
+          </p>
           <ul className="list-disc list-inside space-y-1 text-xs">
-            <li>AI generates 8-12 diverse questions (comprehension, vocabulary, grammar)</li>
-            <li>Content is saved in <strong>draft</strong> status for admin review</li>
+            <li>
+              AI generates 8-12 diverse questions (comprehension, vocabulary,
+              grammar)
+            </li>
+            <li>
+              Content is saved in <strong>draft</strong> status for admin review
+            </li>
             <li>Review and approve content before publishing</li>
             <li>Generation typically takes 30-60 seconds</li>
           </ul>

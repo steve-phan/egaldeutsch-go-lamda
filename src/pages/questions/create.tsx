@@ -15,12 +15,7 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Badge } from "../../components/ui/badge";
-import axios from "axios";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { protectedApi, publicApi } from "@/utils/apiClient";
 
 interface Story {
   id: string;
@@ -62,7 +57,7 @@ const CreateQuestionPage: React.FC = () => {
   const loadStories = async () => {
     try {
       setLoadingStories(true);
-      const response = await axios.get(`${API_BASE_URL}/stories`);
+      const response = await publicApi.getStories();
       setStories(response.data.data || []);
     } catch (err) {
       console.error("Error loading stories:", err);
@@ -144,8 +139,7 @@ const CreateQuestionPage: React.FC = () => {
         points: formData.points,
         order: formData.order,
       };
-
-      await axios.post(`${API_BASE_URL}/questions-management`, questionData);
+      await protectedApi.createQuestion(questionData);
 
       setSuccess(true);
       setTimeout(() => {
