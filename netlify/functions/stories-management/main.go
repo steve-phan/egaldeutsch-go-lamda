@@ -103,6 +103,23 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 // createStory creates a new story in draft status
 func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Validate JWT and get user claims
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+
+	// Get user from claims
+	user, err := middleware.GetUserFromClaims(claims)
+	if err != nil {
+		return errorResponse(500, "Failed to get user information")
+	}
+
+	// Check if user has permission to create stories (Creator, Reviewer, or Admin)
+	if user.Role != models.RoleCreator && user.Role != models.RoleReviewer && user.Role != models.RoleAdmin {
+		return errorResponse(403, "Insufficient permissions to create stories")
+	}
+
 	var storyReq StoryRequest
 	if err := json.Unmarshal([]byte(request.Body), &storyReq); err != nil {
 		return errorResponse(400, "Invalid request body")
@@ -126,15 +143,14 @@ func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	story.WordCount = len([]rune(story.Content)) / 5 // Rough word count estimation
 	story.ReadingTime = story.WordCount / 200        // 200 words per minute
 
-	// Get user ID from context (would come from JWT token in real implementation)
-	userID := primitive.NewObjectID() // Mock user ID
+	// Use authenticated user ID
 	now := time.Now()
 
 	// Set up story with draft status
 	story.ID = primitive.NewObjectID()
 	story.ContentMetadata = models.ContentMetadata{
 		Status:    models.StatusDraft,
-		CreatedBy: userID,
+		CreatedBy: user.ID,
 		CreatedAt: now,
 		UpdatedAt: now,
 		Version:   1,
@@ -142,8 +158,8 @@ func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 	// Insert story into database
 	collection := db.Database.Collection("stories")
-	_, err := collection.InsertOne(context.Background(), story)
-	if err != nil {
+	_, insertErr := collection.InsertOne(context.Background(), story)
+	if insertErr != nil {
 		return errorResponse(500, "Failed to create story")
 	}
 

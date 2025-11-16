@@ -68,15 +68,15 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 
 	log.Printf("Password verified successfully for user: %s", user.Username)
 
-	// Create session using auth package
-	log.Printf("Creating session for user: %s", user.Username)
-	session, token, err := auth.CreateSession(user.ID, request)
+	// Generate JWT token
+	log.Printf("Generating JWT token for user: %s", user.Username)
+	token, err := auth.GenerateJWT(&user, 24) // 24 hour token
 	if err != nil {
-		log.Printf("Login error - failed to create session for user %s: %v", user.Username, err)
-		return response.SimpleError(500, "Failed to create session"), nil
+		log.Printf("Login error - failed to generate JWT for user %s: %v", user.Username, err)
+		return response.SimpleError(500, "Failed to generate authentication token"), nil
 	}
 
-	log.Printf("Session created successfully for user: %s", user.Username)
+	log.Printf("JWT token generated successfully for user: %s", user.Username)
 
 	// Update user's last login
 	now := time.Now()
@@ -107,9 +107,10 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 		LastLoginAt: user.LastLoginAt,
 	}
 
+	expiresAt := time.Now().Add(24 * time.Hour)
 	authResponse := types.AuthTokenResponse{
 		Token:     token,
-		ExpiresAt: session.ExpiresAt,
+		ExpiresAt: expiresAt,
 		User:      userResponse,
 	}
 

@@ -1,54 +1,59 @@
-import React from 'react';
-import { navigate } from 'gatsby';
-import Layout from '../../components/layout';
-import ProtectedRoute from '../../components/auth/ProtectedRoute';
-import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent 
-} from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Separator } from '../../components/ui/separator';
+import React from "react";
+import { navigate } from "gatsby";
+import Layout from "../../components/layout";
+import ProtectedRoute from "../../components/auth/ProtectedRoute";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Separator } from "../../components/ui/separator";
+import { LoadingSpinner } from "@/components/atoms/LoadingSpinner";
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  console.log({ user, isLoading });
+
+  if (isLoading) return <LoadingSpinner message="Loading..." />;
 
   if (!user) return null;
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    if (!dateString) return "Never";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'admin':
-        return 'destructive';
-      case 'reviewer':
-        return 'secondary';
-      case 'creator':
+      case "admin":
+        return "destructive";
+      case "reviewer":
+        return "secondary";
+      case "creator":
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'success';
-      case 'suspended':
-        return 'destructive';
-      case 'pending':
+      case "active":
+        return "success";
+      case "suspended":
+        return "destructive";
+      case "pending":
       default:
-        return 'warning';
+        return "warning";
     }
   };
 
@@ -73,10 +78,10 @@ const ProfilePage: React.FC = () => {
                     Your account details and role information
                   </CardDescription>
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => navigate('/profile/settings')}
+                  onClick={() => navigate("/profile/settings")}
                 >
                   Edit Profile
                 </Button>
@@ -133,7 +138,8 @@ const ProfilePage: React.FC = () => {
                   </label>
                   <div className="mt-1">
                     <Badge variant={getStatusBadgeVariant(user.status)}>
-                      {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                      {user.status.charAt(0).toUpperCase() +
+                        user.status.slice(1)}
                     </Badge>
                   </div>
                 </div>
@@ -162,7 +168,7 @@ const ProfilePage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {user.role === 'admin' && (
+              {user.role === "admin" && (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
                     As an <strong>Admin</strong>, you have full access to:
@@ -176,7 +182,7 @@ const ProfilePage: React.FC = () => {
                   </ul>
                 </div>
               )}
-              {user.role === 'reviewer' && (
+              {user.role === "reviewer" && (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
                     As a <strong>Reviewer</strong>, you can:
@@ -189,7 +195,7 @@ const ProfilePage: React.FC = () => {
                   </ul>
                 </div>
               )}
-              {user.role === 'creator' && (
+              {user.role === "creator" && (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
                     As a <strong>Creator</strong>, you can:
@@ -207,21 +213,30 @@ const ProfilePage: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="mt-6 flex flex-wrap gap-4">
-            <Button onClick={() => navigate('/profile/settings')}>
+            <Button onClick={() => navigate("/profile/settings")}>
               Edit Profile
             </Button>
-            {(user.role === 'creator' || user.role === 'admin') && (
-              <Button variant="outline" onClick={() => navigate('/stories/create')}>
+            {(user.role === "creator" || user.role === "admin") && (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/stories/create")}
+              >
                 Create Story
               </Button>
             )}
-            {(user.role === 'reviewer' || user.role === 'admin') && (
-              <Button variant="outline" onClick={() => navigate('/admin/reviews')}>
+            {(user.role === "reviewer" || user.role === "admin") && (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/admin/reviews")}
+              >
                 Review Content
               </Button>
             )}
-            {user.role === 'admin' && (
-              <Button variant="outline" onClick={() => navigate('/admin/users')}>
+            {user.role === "admin" && (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/admin/users")}
+              >
                 Manage Users
               </Button>
             )}
