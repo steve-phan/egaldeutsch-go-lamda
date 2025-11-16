@@ -26,7 +26,7 @@ Content: %s
 Key Vocabulary:
 %s
 
-Generate exactly 10 questions of different types. For each question, extract relevant German vocabulary that appears in the story.
+Generate exactly 2-4 questions of different types. For each question, extract relevant German vocabulary that appears in the story.
 
 Return your response as valid JSON in this exact format:
 {

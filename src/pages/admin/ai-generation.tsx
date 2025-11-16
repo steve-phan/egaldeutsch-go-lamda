@@ -43,7 +43,12 @@ const AIGenerationPage: React.FC = () => {
 
       // Use protectedApi with status filter
       const response = await publicApi.getStories(); // This will get all stories (admin access)
-      const allStories = response.data || [];
+      const allStories = response.data?.data || [];
+
+      console.log({
+        response,
+        allStories,
+      });
 
       // Filter client-side only if needed (but consider moving to backend)
       const availableStories = allStories.filter(

@@ -51,7 +51,6 @@ func storeQuestions(storyID primitive.ObjectID, questions []types.QuestionGenera
 		}
 
 		questionIDs = append(questionIDs, question.ID.Hex())
-		fmt.Printf("✅ Stored question %d: %s\n", i+1, question.Question[:50]+"...")
 	}
 
 	return questionIDs, nil

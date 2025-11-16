@@ -253,25 +253,6 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
             Previous
           </button>
 
-          <div className="flex space-x-3">
-            {/* Question indicators */}
-            {quiz.questions.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentQuestionIndex(index)}
-                className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                  index === currentQuestionIndex
-                    ? "bg-green-600 text-white"
-                    : answers[index] !== -1
-                    ? "bg-green-100 text-green-800"
-                    : "bg-gray-200 text-gray-600"
-                }`}
-              >
-                {index + 1}
-              </button>
-            ))}
-          </div>
-
           {isLastQuestion ? (
             <button
               onClick={handleSubmitQuiz}
