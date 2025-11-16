@@ -9,18 +9,12 @@ import {
   QuizResponse,
   QuizSubmissionResponse,
 } from "@/types";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { publicApi } from "./apiClient";
 
 // Stories API
 export const fetchStories = async (): Promise<Story[]> => {
   try {
-    const response = await axios.get<StoriesResponse>(
-      `${API_BASE_URL}/stories`
-    );
+    const response = await publicApi.getStories();
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
@@ -33,9 +27,7 @@ export const fetchStories = async (): Promise<Story[]> => {
 
 export const fetchStoryById = async (storyId: string): Promise<Story> => {
   try {
-    const response = await axios.get<StoryResponse>(
-      `${API_BASE_URL}/stories?id=${storyId}`
-    );
+    const response = await publicApi.getStoryById(storyId);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
@@ -49,9 +41,7 @@ export const fetchStoryById = async (storyId: string): Promise<Story> => {
 // Quiz API
 export const fetchQuizByStoryId = async (storyId: string): Promise<Quiz> => {
   try {
-    const response = await axios.get<QuizResponse>(
-      `${API_BASE_URL}/quiz?story_id=${storyId}`
-    );
+    const response = await publicApi.getQuizByStoryId(storyId);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
@@ -67,10 +57,7 @@ export const submitQuiz = async (
   answers: number[]
 ): Promise<QuizResult> => {
   try {
-    const response = await axios.post<QuizSubmissionResponse>(
-      `${API_BASE_URL}/quiz?story_id=${storyId}&action=submit`,
-      { answers }
-    );
+    const response = await publicApi.submitQuiz(storyId, answers);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }

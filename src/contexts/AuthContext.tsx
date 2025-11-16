@@ -1,26 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  User, 
-  LoginCredentials, 
-  RegisterData, 
-  AuthContextType, 
+import React, { createContext, useContext, useState, useEffect } from "react";
+import {
+  User,
+  LoginCredentials,
+  RegisterData,
+  AuthContextType,
   UserRole,
-  AuthResponse 
-} from '../types';
-import axios from 'axios';
+  AuthResponse,
+} from "../types";
+import axios from "axios";
+import { publicApi, TOKEN_KEY, USER_KEY } from "@/utils/apiClient";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Get API URL from environment or use default
-const API_URL = typeof window !== 'undefined' && (window as any).ENV?.GATSBY_API_URL 
-  ? (window as any).ENV.GATSBY_API_URL 
-  : process.env.GATSBY_API_URL || '/.netlify/functions';
-
-// Storage keys
-const TOKEN_KEY = 'egaldeutsch_auth_token';
-const USER_KEY = 'egaldeutsch_user';
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -37,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        console.error("Failed to initialize auth:", error);
         // Clear invalid data
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
@@ -49,25 +43,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  // Set up axios interceptor for authentication
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [token]);
-
   const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
       setIsLoading(true);
-      const response = await axios.post<AuthResponse>(
-        `${API_URL}/user-management/login`,
-        {
-          username: credentials.username,
-          password: credentials.password,
-        }
-      );
+      const response = await publicApi.login({
+        username: credentials.username,
+        password: credentials.password,
+      });
 
       const { token: authToken, user: userData } = response.data;
 
@@ -79,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(TOKEN_KEY, authToken);
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -89,17 +71,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: RegisterData): Promise<void> => {
     try {
       setIsLoading(true);
-      await axios.post(
-        `${API_URL}/user-management/register`,
-        {
-          username: data.username,
-          email: data.email,
-          password: data.password,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          preferredRole: data.preferredRole,
-        }
-      );
+      await publicApi.register({
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        preferredRole: data.preferredRole,
+      });
 
       // After successful registration, automatically log in
       await login({
@@ -107,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: data.password,
       });
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error("Registration failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -124,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(USER_KEY);
 
     // Clear axios header
-    delete axios.defaults.headers.common['Authorization'];
+    delete axios.defaults.headers.common["Authorization"];
   };
 
   const hasRole = (role: UserRole): boolean => {
@@ -154,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

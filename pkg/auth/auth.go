@@ -96,6 +96,7 @@ func ValidateSession(request events.APIGatewayProxyRequest) (*models.User, error
 
 // ValidateSessionWithRole validates session and checks if user has required role
 func ValidateSessionWithRole(request events.APIGatewayProxyRequest, allowedRoles ...models.UserRole) (*models.User, error) {
+
 	user, err := ValidateSession(request)
 	if err != nil {
 		return nil, err

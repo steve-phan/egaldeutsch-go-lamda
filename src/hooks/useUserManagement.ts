@@ -1,13 +1,13 @@
 import { useState, useCallback } from "react";
-import axios from "axios";
 import { User } from "../types/index";
+import { protectedApi } from "@/utils/apiClient";
 
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
-
-export type UserAction = "suspend" | "activate" | "delete" | "promote" | "demote";
+export type UserAction =
+  | "suspend"
+  | "activate"
+  | "delete"
+  | "promote"
+  | "demote";
 
 export const useUserManagement = (currentUserId?: string) => {
   const [users, setUsers] = useState<User[]>([]);
@@ -18,7 +18,7 @@ export const useUserManagement = (currentUserId?: string) => {
     try {
       setLoading(true);
       setError("");
-      const response = await axios.get(`${API_BASE_URL}/user-management`);
+      const response = await protectedApi.getUsers();
       setUsers(response.data);
     } catch (err: any) {
       console.error("Error loading users:", err);
@@ -30,21 +30,21 @@ export const useUserManagement = (currentUserId?: string) => {
 
   const performUserAction = useCallback(
     async (userId: string, action: UserAction) => {
-      if (userId === currentUserId && (action === "suspend" || action === "delete")) {
+      if (
+        userId === currentUserId &&
+        (action === "suspend" || action === "delete")
+      ) {
         throw new Error("Cannot perform this action on your own account");
       }
 
       try {
         switch (action) {
           case "suspend":
-            await axios.put(`${API_BASE_URL}/user-management/${userId}`, {
-              status: "suspended",
-            });
+            await protectedApi.updateUser(userId, { status: "suspended" });
             break;
           case "activate":
-            await axios.put(`${API_BASE_URL}/user-management/${userId}`, {
-              status: "active",
-            });
+            await protectedApi.updateUser(userId, { status: "active" });
+
             break;
           case "delete":
             if (
@@ -52,7 +52,7 @@ export const useUserManagement = (currentUserId?: string) => {
                 "Are you sure you want to delete this user? This action cannot be undone."
               )
             ) {
-              await axios.delete(`${API_BASE_URL}/user-management/${userId}`);
+              await protectedApi.deleteUser(userId);
             } else {
               return false;
             }
@@ -66,9 +66,7 @@ export const useUserManagement = (currentUserId?: string) => {
                   : targetUser.role === "reviewer"
                   ? "admin"
                   : "admin";
-              await axios.put(`${API_BASE_URL}/user-management/${userId}`, {
-                role: newRole,
-              });
+              await protectedApi.updateUser(userId, { role: newRole });
             }
             break;
           case "demote":
@@ -80,16 +78,16 @@ export const useUserManagement = (currentUserId?: string) => {
                   : targetUser2.role === "reviewer"
                   ? "creator"
                   : "creator";
-              await axios.put(`${API_BASE_URL}/user-management/${userId}`, {
-                role: newRole,
-              });
+              await protectedApi.updateUser(userId, { role: newRole });
             }
             break;
         }
         return true;
       } catch (err: any) {
         console.error("Error performing user action:", err);
-        throw new Error(err.response?.data?.error || "Failed to perform action");
+        throw new Error(
+          err.response?.data?.error || "Failed to perform action"
+        );
       }
     },
     [users, currentUserId]

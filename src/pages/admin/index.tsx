@@ -15,11 +15,7 @@ import { Badge } from "../../components/ui/badge";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ContentStatus } from "../../types/content";
 import axios from "axios";
-
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "/.netlify/functions"
-    : "http://localhost:8888/.netlify/functions";
+import { protectedApi, publicApi } from "@/utils/apiClient";
 
 interface DashboardStats {
   users: {
@@ -53,18 +49,10 @@ const AdminDashboard: React.FC = () => {
       // Load all data in parallel
       const [usersRes, storiesRes, questionsRes, quizzesRes] =
         await Promise.all([
-          axios
-            .get(`${API_BASE_URL}/user-management`)
-            .catch(() => ({ data: [] })),
-          axios
-            .get(`${API_BASE_URL}/stories-management`)
-            .catch(() => ({ data: { stories: [] } })),
-          axios
-            .get(`${API_BASE_URL}/questions-management`)
-            .catch(() => ({ data: { questions: [] } })),
-          axios
-            .get(`${API_BASE_URL}/quiz-management`)
-            .catch(() => ({ data: { quizzes: [] } })),
+          protectedApi.getUsers(),
+          publicApi.getStories(),
+          protectedApi.getQuestions(),
+          protectedApi.getQuizs(),
         ]);
 
       const users = usersRes.data || [];
