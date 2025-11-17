@@ -9,6 +9,7 @@ import (
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -17,12 +18,7 @@ import (
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Set CORS headers
-	headers := map[string]string{
-		"Access-Control-Allow-Origin":      "*",
-		"Access-Control-Allow-Headers":     "Content-Type",
-		"Access-Control-Allow-Methods":     "GET, OPTIONS",
-		"Access-Control-Allow-Credentials": "true",
-	}
+	headers := middleware.GetPublicCORSHeaders()
 
 	// Handle OPTIONS request
 	if req.HTTPMethod == "OPTIONS" {

@@ -22,14 +22,7 @@ import (
 func RegisterUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var regReq types.UserRegistrationRequest
 	if err := json.Unmarshal([]byte(request.Body), &regReq); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Body:       `{"error": "Invalid request format"}`,
-			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
-			},
-		}, nil
+		return response.SimpleErrorWithDefault(400, "Invalid request format"), nil
 	}
 
 	// Check if username or email already exists

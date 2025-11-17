@@ -3,6 +3,7 @@ package main
 import (
 	"egaldeutsch-serverless/netlify/functions/ai-generator/handlers"
 	"egaldeutsch-serverless/netlify/functions/ai-generator/services"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -25,7 +26,7 @@ func init() {
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Handle OPTIONS request
 	if request.HTTPMethod == "OPTIONS" {
-		return services.HandleCORSOptions(), nil
+		return middleware.HandleCORSOptions(middleware.PublicAPI), nil
 	}
 
 	// Only POST is allowed

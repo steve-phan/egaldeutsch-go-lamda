@@ -5,6 +5,7 @@ import (
 
 	"egaldeutsch-serverless/netlify/functions/quiz-management/handlers"
 	"egaldeutsch-serverless/netlify/functions/quiz-management/services"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -13,7 +14,7 @@ import (
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Handle OPTIONS request
 	if request.HTTPMethod == "OPTIONS" {
-		return services.HandleCORSOptions(), nil
+		return middleware.HandleCORSOptions(middleware.AuthenticatedAPI), nil
 	}
 
 	// Route based on HTTP method and path

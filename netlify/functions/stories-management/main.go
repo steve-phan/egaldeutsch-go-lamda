@@ -170,10 +170,7 @@ func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 201,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -199,10 +196,7 @@ func getStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResp
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -292,10 +286,7 @@ func listStories(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -368,10 +359,7 @@ func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -528,10 +516,7 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -560,9 +545,7 @@ func deleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: 204,
-		Headers: map[string]string{
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -606,10 +589,7 @@ func errorResponse(statusCode int, message string) (events.APIGatewayProxyRespon
 	return events.APIGatewayProxyResponse{
 		StatusCode: statusCode,
 		Body:       body,
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 

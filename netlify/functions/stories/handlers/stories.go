@@ -9,7 +9,7 @@ import (
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
-	"egaldeutsch-serverless/netlify/functions/stories/services"
+	"egaldeutsch-serverless/pkg/middleware"
 	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -20,7 +20,7 @@ import (
 
 // GetAllStories retrieves all published stories
 func GetAllStories(ctx context.Context, status string) (events.APIGatewayProxyResponse, error) {
-	headers := services.GetCORSHeaders()
+	headers := middleware.GetCORSHeaders()
 
 	storiesCollection, err := db.GetCollection(db.Collections.Stories)
 	if err != nil {
@@ -70,7 +70,7 @@ func GetAllStories(ctx context.Context, status string) (events.APIGatewayProxyRe
 
 // GetStoryByID retrieves a specific story by its ID
 func GetStoryByID(ctx context.Context, storyID string) (events.APIGatewayProxyResponse, error) {
-	headers := services.GetCORSHeaders()
+	headers := middleware.GetCORSHeaders()
 
 	storiesCollection, err := db.GetCollection(db.Collections.Stories)
 	if err != nil {
@@ -112,7 +112,7 @@ func GetStoryByID(ctx context.Context, storyID string) (events.APIGatewayProxyRe
 
 // CreateStory creates a new story
 func CreateStory(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	headers := services.GetCORSHeaders()
+	headers := middleware.GetCORSHeaders()
 
 	storiesCollection, err := db.GetCollection(db.Collections.Stories)
 	if err != nil {

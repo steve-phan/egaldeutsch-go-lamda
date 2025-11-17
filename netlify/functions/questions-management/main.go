@@ -9,6 +9,7 @@ import (
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -68,10 +69,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		return events.APIGatewayProxyResponse{
 			StatusCode: 405,
 			Body:       `{"error": "Method not allowed"}`,
-			Headers: map[string]string{
-				"Content-Type":                "application/json",
-				"Access-Control-Allow-Origin": "*",
-			},
+			Headers:    middleware.GetAuthenticatedCORSHeaders(),
 		}, nil
 	}
 }
@@ -140,10 +138,7 @@ func createQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	return events.APIGatewayProxyResponse{
 		StatusCode: 201,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -168,10 +163,7 @@ func getQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -241,10 +233,7 @@ func listQuestions(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -313,10 +302,7 @@ func updateQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -344,9 +330,7 @@ func deleteQuestion(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: 204,
-		Headers: map[string]string{
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -375,10 +359,7 @@ func errorResponse(statusCode int, message string) (events.APIGatewayProxyRespon
 	return events.APIGatewayProxyResponse{
 		StatusCode: statusCode,
 		Body:       body,
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-		},
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/quiz-management/services"
 	"egaldeutsch-serverless/netlify/functions/quiz-management/types"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"go.mongodb.org/mongo-driver/bson"
@@ -93,7 +94,7 @@ func CreateQuiz(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	return events.APIGatewayProxyResponse{
 		StatusCode: 201,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -126,7 +127,7 @@ func GetQuiz(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -184,7 +185,7 @@ func ListQuizzes(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 

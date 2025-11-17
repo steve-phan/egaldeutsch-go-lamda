@@ -10,6 +10,7 @@ import (
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/quiz/services"
 	"egaldeutsch-serverless/netlify/functions/quiz/types"
+	"egaldeutsch-serverless/pkg/middleware"
 	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -21,7 +22,7 @@ import (
 
 // GetQuiz retrieves a quiz for a specific story
 func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyResponse, error) {
-	headers := services.GetCORSHeaders()
+	headers := middleware.GetCORSHeaders()
 
 	collections, err := services.GetCollections()
 	if err != nil {
@@ -95,7 +96,7 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 
 // SubmitQuiz handles quiz submission and scoring
 func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	headers := services.GetCORSHeaders()
+	headers := middleware.GetCORSHeaders()
 
 	collections, err := services.GetCollections()
 

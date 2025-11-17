@@ -9,6 +9,7 @@ import (
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/ai-generator/services"
 	"egaldeutsch-serverless/netlify/functions/ai-generator/types"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/openai/openai-go"
@@ -81,7 +82,7 @@ func GenerateContent(request events.APIGatewayProxyRequest) (events.APIGatewayPr
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetPublicCORSHeaders(),
 	}, nil
 }
 

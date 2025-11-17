@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"egaldeutsch-serverless/db"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -20,12 +21,7 @@ type HealthResponse struct {
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	headers := map[string]string{
-		"Content-Type":                 "application/json",
-		"Access-Control-Allow-Origin":  "*",
-		"Access-Control-Allow-Headers": "Content-Type",
-		"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-	}
+	headers := middleware.GetPublicCORSHeaders()
 
 	// Handle CORS preflight
 	if req.HTTPMethod == "OPTIONS" {

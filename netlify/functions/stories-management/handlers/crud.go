@@ -10,6 +10,7 @@ import (
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/stories-management/services"
 	"egaldeutsch-serverless/netlify/functions/stories-management/types"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,7 +78,7 @@ func CreateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 201,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -107,7 +108,7 @@ func GetStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResp
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -203,7 +204,7 @@ func ListStories(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       string(responseBody),
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 
@@ -232,7 +233,7 @@ func DeleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: 204,
-		Headers:    services.GetCORSHeaders(),
+		Headers:    middleware.GetAuthenticatedCORSHeaders(),
 	}, nil
 }
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"egaldeutsch-serverless/netlify/functions/quiz/handlers"
-	"egaldeutsch-serverless/netlify/functions/quiz/services"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -14,7 +14,7 @@ import (
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Handle OPTIONS request
 	if req.HTTPMethod == "OPTIONS" {
-		return services.HandleCORSOptions(), nil
+		return middleware.HandleCORSOptions(middleware.PublicAPI), nil
 	}
 
 	// Route requests
@@ -38,7 +38,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	case method == "POST" && storyID != "" && action == "submit":
 		return handlers.SubmitQuiz(ctx, storyID, req)
 	default:
-		headers := services.GetCORSHeaders()
+		headers := middleware.GetPublicCORSHeaders()
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusMethodNotAllowed,
 			Headers:    headers,
