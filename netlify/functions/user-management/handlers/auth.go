@@ -24,7 +24,7 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	var loginReq types.UserLoginRequest
 	if err := json.Unmarshal([]byte(request.Body), &loginReq); err != nil {
 		log.Printf("Login error - invalid request format: %v", err)
-		return response.SimpleError(400, "Invalid request format"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request format"), nil
 	}
 
 	log.Printf("Login attempt for username/email: %s", loginReq.Username)
@@ -41,7 +41,7 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 
 	if err != nil {
 		log.Printf("Login error - user not found: %v", err)
-		return response.SimpleError(401, "Invalid credentials"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid credentials"), nil
 	}
 
 	log.Printf("User found: %s (ID: %s, Status: %s)", user.Username, user.ID.Hex(), user.Status)
@@ -49,7 +49,7 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	// Check if user is active
 	if user.Status != models.UserStatusActive {
 		log.Printf("Login error - user account not active: %s (Status: %s)", user.Username, user.Status)
-		return response.SimpleError(403, "Account is not active"), nil
+		return response.SimpleErrorWithDefault(403, "Account is not active"), nil
 	}
 
 	// Verify password
@@ -57,7 +57,7 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(loginReq.Password))
 	if err != nil {
 		log.Printf("Login error - password verification failed for user %s: %v", user.Username, err)
-		return response.SimpleError(401, "Invalid credentials"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid credentials"), nil
 	}
 
 	log.Printf("Password verified successfully for user: %s", user.Username)
@@ -67,7 +67,7 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	token, err := auth.GenerateJWT(&user, 24) // 24 hour token
 	if err != nil {
 		log.Printf("Login error - failed to generate JWT for user %s: %v", user.Username, err)
-		return response.SimpleError(500, "Failed to generate authentication token"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to generate authentication token"), nil
 	}
 
 	log.Printf("JWT token generated successfully for user: %s", user.Username)
@@ -108,5 +108,5 @@ func LoginUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 		User:      userResponse,
 	}
 
-	return response.JSON(200, authResponse)
+	return response.JSONWithDefault(200, authResponse)
 }

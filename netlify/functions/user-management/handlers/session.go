@@ -19,5 +19,5 @@ func LogoutUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 
 	// With JWT, no server-side action needed
 	// Client will delete the token from localStorage
-	return response.SuccessJSON(200, nil, "Logged out successfully")
+	return response.SuccessJSONWithDefault(200, nil, "Logged out successfully")
 }

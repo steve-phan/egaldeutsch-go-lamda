@@ -20,7 +20,7 @@ import (
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Connect to MongoDB
 	if err := db.Connect(); err != nil {
-		return response.SimpleError(500, "Database connection failed"), nil
+		return response.SimpleErrorWithDefault(500, "Database connection failed"), nil
 	}
 	defer db.Disconnect()
 
@@ -44,7 +44,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	case "DELETE":
 		return deleteNotification(request)
 	default:
-		return response.SimpleError(405, "Method not allowed"), nil
+		return response.SimpleErrorWithDefault(405, "Method not allowed"), nil
 	}
 }
 
@@ -53,7 +53,7 @@ func listNotifications(request events.APIGatewayProxyRequest) (events.APIGateway
 	// Validate session
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Parse query parameters
@@ -82,7 +82,7 @@ func listNotifications(request events.APIGatewayProxyRequest) (events.APIGateway
 	notifications, total, err := notification.GetUserNotifications(user.ID, page, limit, unreadOnly)
 	if err != nil {
 		log.Printf("Failed to get notifications for user %s: %v", user.ID.Hex(), err)
-		return response.SimpleError(500, "Failed to retrieve notifications"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to retrieve notifications"), nil
 	}
 
 	totalPages := (int(total) + limit - 1) / limit
@@ -95,7 +95,7 @@ func listNotifications(request events.APIGatewayProxyRequest) (events.APIGateway
 		"totalPages":    totalPages,
 	}
 
-	return response.SuccessJSON(200, result, "Notifications retrieved successfully")
+	return response.SuccessJSONWithDefault(200, result, "Notifications retrieved successfully")
 }
 
 // getUnreadCount returns the count of unread notifications
@@ -103,21 +103,21 @@ func getUnreadCount(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	// Validate session
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Get unread count
 	count, err := notification.GetUnreadCount(user.ID)
 	if err != nil {
 		log.Printf("Failed to get unread count for user %s: %v", user.ID.Hex(), err)
-		return response.SimpleError(500, "Failed to get unread count"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to get unread count"), nil
 	}
 
 	result := map[string]interface{}{
 		"count": count,
 	}
 
-	return response.SuccessJSON(200, result, "Unread count retrieved successfully")
+	return response.SuccessJSONWithDefault(200, result, "Unread count retrieved successfully")
 }
 
 // markAsRead marks a single notification as read
@@ -125,7 +125,7 @@ func markAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	// Validate session
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Get notification ID from path or body
@@ -139,22 +139,22 @@ func markAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	}
 
 	if notificationID == "" {
-		return response.SimpleError(400, "Notification ID is required"), nil
+		return response.SimpleErrorWithDefault(400, "Notification ID is required"), nil
 	}
 
 	// Convert to ObjectID
 	objectID, err := primitive.ObjectIDFromHex(notificationID)
 	if err != nil {
-		return response.SimpleError(400, "Invalid notification ID"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid notification ID"), nil
 	}
 
 	// Mark as read
 	if err := notification.MarkAsRead(objectID, user.ID); err != nil {
 		log.Printf("Failed to mark notification as read: %v", err)
-		return response.SimpleError(500, "Failed to mark notification as read"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to mark notification as read"), nil
 	}
 
-	return response.SuccessJSON(200, nil, "Notification marked as read")
+	return response.SuccessJSONWithDefault(200, nil, "Notification marked as read")
 }
 
 // markAllAsRead marks all notifications as read for the user
@@ -162,16 +162,16 @@ func markAllAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	// Validate session
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Mark all as read
 	if err := notification.MarkAllAsRead(user.ID); err != nil {
 		log.Printf("Failed to mark all notifications as read: %v", err)
-		return response.SimpleError(500, "Failed to mark all notifications as read"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to mark all notifications as read"), nil
 	}
 
-	return response.SuccessJSON(200, nil, "All notifications marked as read")
+	return response.SuccessJSONWithDefault(200, nil, "All notifications marked as read")
 }
 
 // deleteNotification deletes a notification
@@ -179,28 +179,28 @@ func deleteNotification(request events.APIGatewayProxyRequest) (events.APIGatewa
 	// Validate session
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Get notification ID
 	notificationID := request.PathParameters["id"]
 	if notificationID == "" {
-		return response.SimpleError(400, "Notification ID is required"), nil
+		return response.SimpleErrorWithDefault(400, "Notification ID is required"), nil
 	}
 
 	// Convert to ObjectID
 	objectID, err := primitive.ObjectIDFromHex(notificationID)
 	if err != nil {
-		return response.SimpleError(400, "Invalid notification ID"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid notification ID"), nil
 	}
 
 	// Delete notification
 	if err := notification.DeleteNotification(objectID, user.ID); err != nil {
 		log.Printf("Failed to delete notification: %v", err)
-		return response.SimpleError(500, "Failed to delete notification"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to delete notification"), nil
 	}
 
-	return response.SuccessJSON(200, nil, "Notification deleted successfully")
+	return response.SuccessJSONWithDefault(200, nil, "Notification deleted successfully")
 }
 
 func main() {

@@ -51,7 +51,7 @@ func init() {
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Connect to MongoDB
 	if err := db.Connect(); err != nil {
-		return response.SimpleError(500, "Database connection failed"), nil
+		return response.SimpleErrorWithDefault(500, "Database connection failed"), nil
 	}
 	defer db.Disconnect()
 
@@ -75,7 +75,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		if strings.Contains(request.Path, "/reset-password") {
 			return handlers.ResetPassword(request)
 		}
-		return response.SimpleError(404, "Endpoint not found"), nil
+		return response.SimpleErrorWithDefault(404, "Endpoint not found"), nil
 	case "GET":
 		if strings.Contains(request.Path, "/profile") {
 			return handlers.GetUserProfile(request)
@@ -89,7 +89,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		}
 		return handlers.DeleteUser(request)
 	default:
-		return response.SimpleError(405, "Method not allowed"), nil
+		return response.SimpleErrorWithDefault(405, "Method not allowed"), nil
 	}
 }
 

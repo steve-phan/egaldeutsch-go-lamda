@@ -22,7 +22,7 @@ import (
 func ForgotPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var req types.ForgotPasswordRequest
 	if err := json.Unmarshal([]byte(request.Body), &req); err != nil {
-		return response.SimpleError(400, "Invalid request format"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request format"), nil
 	}
 
 	// Find user by email
@@ -32,19 +32,19 @@ func ForgotPassword(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 	// Always return success to prevent email enumeration
 	if err != nil {
-		return response.SuccessJSON(200, nil, "If the email exists, a password reset link has been sent")
+		return response.SuccessJSONWithDefault(200, nil, "If the email exists, a password reset link has been sent")
 	}
 
 	// Check if user is active
 	if user.Status != models.UserStatusActive {
-		return response.SuccessJSON(200, nil, "If the email exists, a password reset link has been sent")
+		return response.SuccessJSONWithDefault(200, nil, "If the email exists, a password reset link has been sent")
 	}
 
 	// Generate password reset token
 	token, err := services.CreatePasswordResetToken(user.ID)
 	if err != nil {
 		log.Printf("Failed to create password reset token for user %s: %v", user.ID.Hex(), err)
-		return response.SuccessJSON(200, nil, "If the email exists, a password reset link has been sent")
+		return response.SuccessJSONWithDefault(200, nil, "If the email exists, a password reset link has been sent")
 	}
 
 	// Send password reset email directly (no goroutine needed in Lambda)
@@ -55,31 +55,31 @@ func ForgotPassword(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	} else {
 		log.Printf("Successfully sent password reset email to: %s", user.Email)
 	}
-	return response.SuccessJSON(200, nil, "If the email exists, a password reset link has been sent")
+	return response.SuccessJSONWithDefault(200, nil, "If the email exists, a password reset link has been sent")
 }
 
 // ResetPassword handles password reset with token
 func ResetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var req types.ResetPasswordRequest
 	if err := json.Unmarshal([]byte(request.Body), &req); err != nil {
-		return response.SimpleError(400, "Invalid request format"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request format"), nil
 	}
 
 	// Validate password length
 	if len(req.NewPassword) < 8 {
-		return response.SimpleError(400, "Password must be at least 8 characters long"), nil
+		return response.SimpleErrorWithDefault(400, "Password must be at least 8 characters long"), nil
 	}
 
 	// Validate reset token
 	userID, err := services.ValidateResetToken(req.Token)
 	if err != nil {
-		return response.SimpleError(400, "Invalid or expired reset token"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid or expired reset token"), nil
 	}
 
 	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return response.SimpleError(500, "Failed to hash password"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to hash password"), nil
 	}
 
 	// Update user password
@@ -95,7 +95,7 @@ func ResetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 	).Decode(&user)
 
 	if err != nil {
-		return response.SimpleError(500, "Failed to update password"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to update password"), nil
 	}
 
 	// Mark token as used
@@ -125,5 +125,5 @@ func ResetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 		log.Printf("Failed to create password change notification: %v", err)
 	}
 
-	return response.SuccessJSON(200, nil, "Password has been successfully reset")
+	return response.SuccessJSONWithDefault(200, nil, "Password has been successfully reset")
 }

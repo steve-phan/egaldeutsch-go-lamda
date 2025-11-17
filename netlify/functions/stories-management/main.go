@@ -72,7 +72,7 @@ type ListStoriesResponse struct {
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Connect to MongoDB
 	if err := db.Connect(); err != nil {
-		return response.SimpleError(500, "Database connection failed"), nil
+		return response.DatabaseError("Failed to connect to database"), nil
 	}
 	defer db.Disconnect()
 
@@ -97,7 +97,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	case "DELETE":
 		return deleteStory(request)
 	default:
-		return response.SimpleError(405, "Method not allowed"), nil
+		return response.SimpleErrorWithDefault(405, "Method not allowed"), nil
 	}
 }
 
@@ -112,17 +112,17 @@ func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	// Get user from claims
 	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return errorResponse(500, "Failed to get user information")
+		return response.SimpleErrorWithDefault(500, "Failed to get user information"), nil
 	}
 
 	// Check if user has permission to create stories (Creator, Reviewer, or Admin)
 	if user.Role != models.RoleCreator && user.Role != models.RoleReviewer && user.Role != models.RoleAdmin {
-		return errorResponse(403, "Insufficient permissions to create stories")
+		return response.SimpleErrorWithDefault(403, "Insufficient permissions to create stories"), nil
 	}
 
 	var storyReq StoryRequest
 	if err := json.Unmarshal([]byte(request.Body), &storyReq); err != nil {
-		return errorResponse(400, "Invalid request body")
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	// Validate the story
@@ -136,7 +136,7 @@ func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	}
 
 	if err := story.Validate(); err != nil {
-		return errorResponse(400, fmt.Sprintf("Validation error: %v", err))
+		return response.ValidationError(fmt.Sprintf("Validation error: %v", err)), nil
 	}
 
 	// Calculate word count and reading time
@@ -160,7 +160,7 @@ func createStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	collection := db.Database.Collection("stories")
 	_, insertErr := collection.InsertOne(context.Background(), story)
 	if insertErr != nil {
-		return errorResponse(500, "Failed to create story")
+		return response.DatabaseError("Failed to create story"), nil
 	}
 
 	// Convert to response format
@@ -182,7 +182,7 @@ func getStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResp
 	storyID := request.PathParameters["id"]
 	objectID, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return errorResponse(400, "Invalid story ID")
+		return response.SimpleErrorWithDefault(400, "Invalid story ID"), nil
 	}
 
 	collection, _ := db.GetCollection(db.Collections.Stories)
@@ -190,7 +190,7 @@ func getStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResp
 
 	err = collection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&story)
 	if err != nil {
-		return errorResponse(404, "Story not found")
+		return response.NotFoundError("Story"), nil
 	}
 
 	response := convertToStoryResponse(story)
@@ -253,7 +253,7 @@ func listStories(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	// Get total count
 	total, err := collection.CountDocuments(context.Background(), filter)
 	if err != nil {
-		return errorResponse(500, "Failed to count stories")
+		return response.DatabaseError("Failed to count stories"), nil
 	}
 
 	// Get stories with pagination
@@ -262,13 +262,13 @@ func listStories(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 	cursor, err := collection.Find(context.Background(), filter, opts)
 	if err != nil {
-		return errorResponse(500, "Failed to retrieve stories")
+		return response.DatabaseError("Failed to retrieve stories"), nil
 	}
 	defer cursor.Close(context.Background())
 
 	var stories []models.Story
 	if err = cursor.All(context.Background(), &stories); err != nil {
-		return errorResponse(500, "Failed to decode stories")
+		return response.DatabaseError("Failed to decode stories"), nil
 	}
 
 	// Convert to response format
@@ -305,12 +305,12 @@ func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	log.Printf("requestid is , %s", storyID)
 	objectID, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return errorResponse(400, "Invalid story ID")
+		return response.SimpleErrorWithDefault(400, "Invalid story ID"), nil
 	}
 
 	var storyReq StoryRequest
 	if err := json.Unmarshal([]byte(request.Body), &storyReq); err != nil {
-		return errorResponse(400, "Invalid request body")
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	// Validate the updated story
@@ -324,7 +324,7 @@ func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	}
 
 	if err := story.Validate(); err != nil {
-		return errorResponse(400, fmt.Sprintf("Validation error: %v", err))
+		return response.ValidationError(fmt.Sprintf("Validation error: %v", err)), nil
 	}
 
 	// Calculate updated word count and reading time
@@ -359,7 +359,7 @@ func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 
 	var updatedStory models.Story
 	if err := result.Decode(&updatedStory); err != nil {
-		return errorResponse(404, "Story not found")
+		return response.NotFoundError("Story"), nil
 	}
 
 	response := convertToStoryResponse(updatedStory)
@@ -403,17 +403,17 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 	fmt.Printf("Extracted story ID: %s\n", storyID)
 
 	if storyID == "" {
-		return errorResponse(400, "Story ID is required")
+		return response.SimpleErrorWithDefault(400, "Story ID is required"), nil
 	}
 
 	objectID, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return errorResponse(400, "Invalid story ID format")
+		return response.SimpleErrorWithDefault(400, "Invalid story ID format"), nil
 	}
 
 	var statusReq StatusUpdateRequest
 	if err := json.Unmarshal([]byte(request.Body), &statusReq); err != nil {
-		return errorResponse(400, "Invalid request body")
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	// Get current story to validate status transition
@@ -421,12 +421,12 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 	var currentStory models.Story
 	err = collection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&currentStory)
 	if err != nil {
-		return errorResponse(404, "Story not found")
+		return response.NotFoundError("Story"), nil
 	}
 
 	// Validate status transition
 	if !currentStory.Status.CanTransitionTo(statusReq.Status) {
-		return errorResponse(400, fmt.Sprintf("Cannot transition from %s to %s", currentStory.Status, statusReq.Status))
+		return response.SimpleErrorWithDefault(400, fmt.Sprintf("Cannot transition from %s to %s", currentStory.Status, statusReq.Status)), nil
 	}
 
 	// Prepare update
@@ -479,7 +479,7 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 
 	var updatedStory models.Story
 	if err := result.Decode(&updatedStory); err != nil {
-		return errorResponse(500, "Failed to update story status")
+		return response.DatabaseError("Failed to update story status"), nil
 	}
 
 	// Send notifications based on status change
@@ -540,7 +540,7 @@ func deleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	storyID := request.PathParameters["id"]
 	objectID, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return errorResponse(400, "Invalid story ID")
+		return response.SimpleErrorWithDefault(400, "Invalid story ID"), nil
 	}
 
 	collection, _ := db.GetCollection(db.Collections.Stories)
@@ -551,11 +551,11 @@ func deleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	)
 
 	if err != nil {
-		return errorResponse(500, "Failed to delete story")
+		return response.DatabaseError("Failed to delete story"), nil
 	}
 
 	if result.DeletedCount == 0 {
-		return errorResponse(404, "Story not found")
+		return response.NotFoundError("Story"), nil
 	}
 
 	return events.APIGatewayProxyResponse{

@@ -43,13 +43,13 @@ func RegisterUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxy
 	}).Decode(&existingUser)
 
 	if err == nil {
-		return response.SimpleError(409, "Username or email already exists"), nil
+		return response.SimpleErrorWithDefault(409, "Username or email already exists"), nil
 	}
 
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(regReq.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return response.SimpleError(500, "Failed to hash password"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to hash password"), nil
 	}
 
 	// Create new user
@@ -71,7 +71,7 @@ func RegisterUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxy
 	// Save user to database
 	_, err = collection.InsertOne(context.TODO(), newUser)
 	if err != nil {
-		return response.SimpleError(500, "Failed to create user"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to create user"), nil
 	}
 
 	// Send welcome email directly (no goroutine needed in Lambda)
@@ -106,5 +106,5 @@ func RegisterUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxy
 		LastLoginAt: newUser.LastLoginAt,
 	}
 
-	return response.JSON(201, userResponse)
+	return response.JSONWithDefault(201, userResponse)
 }

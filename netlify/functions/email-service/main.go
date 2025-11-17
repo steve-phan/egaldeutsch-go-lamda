@@ -101,14 +101,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		if strings.Contains(request.Path, "/send") {
 			return sendEmail(request)
 		}
-		return response.SimpleError(404, "Endpoint not found"), nil
+		return response.SimpleErrorWithDefault(404, "Endpoint not found"), nil
 	case "GET":
 		if strings.Contains(request.Path, "/config") {
 			return getEmailConfig(request)
 		}
-		return response.SimpleError(404, "Endpoint not found"), nil
+		return response.SimpleErrorWithDefault(404, "Endpoint not found"), nil
 	default:
-		return response.SimpleError(405, "Method not allowed"), nil
+		return response.SimpleErrorWithDefault(405, "Method not allowed"), nil
 	}
 }
 
@@ -116,14 +116,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 func sendEmail(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var emailReq EmailRequest
 	if err := json.Unmarshal([]byte(request.Body), &emailReq); err != nil {
-		return response.SimpleError(400, "Invalid request body"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	// Initialize email service
 	emailService, err := email.NewServiceFromEnv()
 	if err != nil {
 		log.Printf("Failed to initialize email service: %v", err)
-		return response.SimpleError(500, "Email service initialization failed"), nil
+		return response.SimpleErrorWithDefault(500, "Email service initialization failed"), nil
 	}
 
 	var sentCount int
@@ -170,12 +170,12 @@ func sendEmail(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 			}
 		}
 	default:
-		return response.SimpleError(400, "Unsupported email type"), nil
+		return response.SimpleErrorWithDefault(400, "Unsupported email type"), nil
 	}
 
 	if emailErr != nil {
 		log.Printf("Email sending failed: %v", emailErr)
-		return response.SimpleError(500, fmt.Sprintf("Failed to send email: %v", emailErr)), nil
+		return response.SimpleErrorWithDefault(500, fmt.Sprintf("Failed to send email: %v", emailErr)), nil
 	}
 
 	responseData := EmailResponse{
@@ -185,7 +185,7 @@ func sendEmail(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 		Provider:  emailService.GetConfig().Provider,
 	}
 
-	return response.JSON(200, responseData)
+	return response.JSONWithDefault(200, responseData)
 }
 
 // sendWelcomeEmail handles welcome email sending
@@ -196,18 +196,18 @@ func sendWelcomeEmail(request events.APIGatewayProxyRequest) (events.APIGatewayP
 	}
 
 	if err := json.Unmarshal([]byte(request.Body), &req); err != nil {
-		return response.SimpleError(400, "Invalid request body"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	emailService, err := email.NewServiceFromEnv()
 	if err != nil {
 		log.Printf("Failed to initialize email service: %v", err)
-		return response.SimpleError(500, "Email service initialization failed"), nil
+		return response.SimpleErrorWithDefault(500, "Email service initialization failed"), nil
 	}
 
 	if err := emailService.SendWelcomeEmail(req.Email, req.UserName); err != nil {
 		log.Printf("Failed to send welcome email: %v", err)
-		return response.SimpleError(500, "Failed to send welcome email"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to send welcome email"), nil
 	}
 
 	responseData := EmailResponse{
@@ -217,7 +217,7 @@ func sendWelcomeEmail(request events.APIGatewayProxyRequest) (events.APIGatewayP
 		Provider:  emailService.GetConfig().Provider,
 	}
 
-	return response.JSON(200, responseData)
+	return response.JSONWithDefault(200, responseData)
 }
 
 // sendPasswordResetEmail handles password reset email sending
@@ -232,7 +232,7 @@ func sendPasswordResetEmail(request events.APIGatewayProxyRequest) (events.APIGa
 
 	if err := json.Unmarshal([]byte(request.Body), &req); err != nil {
 		log.Printf("Failed to unmarshal password reset request: %v", err)
-		return response.SimpleError(400, "Invalid request body"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	log.Printf("Password reset request parsed - Email: %s, UserName: %s", req.Email, req.UserName)
@@ -241,14 +241,14 @@ func sendPasswordResetEmail(request events.APIGatewayProxyRequest) (events.APIGa
 	emailService, err := email.NewServiceFromEnv()
 	if err != nil {
 		log.Printf("Failed to initialize email service: %v", err)
-		return response.SimpleError(500, "Email service initialization failed"), nil
+		return response.SimpleErrorWithDefault(500, "Email service initialization failed"), nil
 	}
 	log.Printf("Email service initialized successfully")
 
 	log.Printf("Sending password reset email to: %s", req.Email)
 	if err := emailService.SendPasswordResetEmail(req.Email, req.UserName, req.ResetToken); err != nil {
 		log.Printf("Failed to send password reset email: %v", err)
-		return response.SimpleError(500, "Failed to send password reset email"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to send password reset email"), nil
 	}
 	log.Printf("Password reset email sent successfully to: %s", req.Email)
 
@@ -259,7 +259,7 @@ func sendPasswordResetEmail(request events.APIGatewayProxyRequest) (events.APIGa
 		Provider:  emailService.GetConfig().Provider,
 	}
 
-	return response.JSON(200, responseData)
+	return response.JSONWithDefault(200, responseData)
 }
 
 // sendNewStoryNotification handles new story notification emails
@@ -272,18 +272,18 @@ func sendNewStoryNotification(request events.APIGatewayProxyRequest) (events.API
 	}
 
 	if err := json.Unmarshal([]byte(request.Body), &req); err != nil {
-		return response.SimpleError(400, "Invalid request body"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request body"), nil
 	}
 
 	// Get subscriber emails from database
 	subscriberEmails, err := getSubscriberEmails(req.MaxUsers)
 	if err != nil {
 		log.Printf("Failed to get subscriber emails: %v", err)
-		return response.SimpleError(500, "Failed to get subscriber emails"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to get subscriber emails"), nil
 	}
 
 	if len(subscriberEmails) == 0 {
-		return response.JSON(200, EmailResponse{
+		return response.JSONWithDefault(200, EmailResponse{
 			Success:   true,
 			Message:   "No subscribers to notify",
 			SentCount: 0,
@@ -293,12 +293,12 @@ func sendNewStoryNotification(request events.APIGatewayProxyRequest) (events.API
 	emailService, err := email.NewServiceFromEnv()
 	if err != nil {
 		log.Printf("Failed to initialize email service: %v", err)
-		return response.SimpleError(500, "Email service initialization failed"), nil
+		return response.SimpleErrorWithDefault(500, "Email service initialization failed"), nil
 	}
 
 	if err := emailService.SendNewStoryNotification(subscriberEmails, req.StoryTitle, req.StoryLevel, req.StoryID); err != nil {
 		log.Printf("Failed to send new story notification: %v", err)
-		return response.SimpleError(500, "Failed to send new story notification"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to send new story notification"), nil
 	}
 
 	responseData := EmailResponse{
@@ -308,7 +308,7 @@ func sendNewStoryNotification(request events.APIGatewayProxyRequest) (events.API
 		Provider:  emailService.GetConfig().Provider,
 	}
 
-	return response.JSON(200, responseData)
+	return response.JSONWithDefault(200, responseData)
 }
 
 // sendNewStoryNotificationWithDB handles new story notification with database connection
@@ -316,7 +316,7 @@ func sendNewStoryNotificationWithDB(request events.APIGatewayProxyRequest) (even
 	// Connect to MongoDB only for this function that needs it
 	if err := db.Connect(); err != nil {
 		log.Printf("Database connection failed: %v", err)
-		return response.SimpleError(500, "Database connection failed"), nil
+		return response.SimpleErrorWithDefault(500, "Database connection failed"), nil
 	}
 	defer db.Disconnect()
 
@@ -328,11 +328,11 @@ func sendNewStoryNotificationWithDB(request events.APIGatewayProxyRequest) (even
 func getEmailConfig(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	emailService, err := email.NewServiceFromEnv()
 	if err != nil {
-		return response.SimpleError(500, "Email service initialization failed"), nil
+		return response.SimpleErrorWithDefault(500, "Email service initialization failed"), nil
 	}
 
 	config := emailService.GetConfig()
-	return response.JSON(200, config)
+	return response.JSONWithDefault(200, config)
 }
 
 // getSubscriberEmails retrieves subscriber emails from the database

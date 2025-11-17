@@ -25,7 +25,7 @@ func GetUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 	// Validate session using auth package
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Return user profile
@@ -42,7 +42,7 @@ func GetUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 		LastLoginAt: user.LastLoginAt,
 	}
 
-	return response.JSON(200, userResponse)
+	return response.JSONWithDefault(200, userResponse)
 }
 
 // ListUsers returns a list of users (admin/reviewer only)
@@ -59,7 +59,7 @@ func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	//validate jwt token
 	_, err := middleware.ValidateJWT(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized 2"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized 2"), nil
 	}
 
 	// Get query parameters for filtering
@@ -77,13 +77,13 @@ func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	collection, _ := services.GetUserCollection()
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
-		return response.SimpleError(500, "Failed to fetch users"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to fetch users"), nil
 	}
 	defer cursor.Close(context.TODO())
 
 	var users []models.User
 	if err = cursor.All(context.TODO(), &users); err != nil {
-		return response.SimpleError(500, "Failed to decode users"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to decode users"), nil
 	}
 
 	// Convert to response format (without passwords)
@@ -103,7 +103,7 @@ func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 		})
 	}
 
-	return response.JSON(200, userResponses)
+	return response.JSONWithDefault(200, userResponses)
 }
 
 // UpdateUserProfile updates user profile information
@@ -112,12 +112,12 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 
 	user, err := auth.ValidateSession(request)
 	if err != nil {
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	var updateReq types.UserUpdateRequest
 	if err := json.Unmarshal([]byte(request.Body), &updateReq); err != nil {
-		return response.SimpleError(400, "Invalid request format"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid request format"), nil
 	}
 
 	collection, _ := services.GetUserCollection()
@@ -148,7 +148,7 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 	if updateReq.Email != nil && *updateReq.Email != user.Email {
 		err := collection.FindOne(context.TODO(), bson.M{"email": *updateReq.Email}).Err()
 		if err == nil {
-			return response.SimpleError(409, "Email already in use"), nil
+			return response.SimpleErrorWithDefault(409, "Email already in use"), nil
 		}
 		updateFields["email"] = *updateReq.Email
 	}
@@ -158,13 +158,13 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		// Verify old password
 		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(*updateReq.OldPassword))
 		if err != nil {
-			return response.SimpleError(400, "Current password is incorrect"), nil
+			return response.SimpleErrorWithDefault(400, "Current password is incorrect"), nil
 		}
 
 		// Hash new password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*updateReq.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
-			return response.SimpleError(500, "Failed to hash new password"), nil
+			return response.SimpleErrorWithDefault(500, "Failed to hash new password"), nil
 		}
 		updateFields["passwordHash"] = string(hashedPassword)
 	}
@@ -176,14 +176,14 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		bson.M{"$set": updateFields},
 	)
 	if err != nil {
-		return response.SimpleError(500, "Failed to update user"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to update user"), nil
 	}
 
 	// Fetch updated user
 	var updatedUser models.User
 	err = collection.FindOne(context.TODO(), bson.M{"_id": user.ID}).Decode(&updatedUser)
 	if err != nil {
-		return response.SimpleError(500, "Failed to fetch updated user"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to fetch updated user"), nil
 	}
 
 	// Return updated user profile
@@ -200,7 +200,7 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		LastLoginAt: updatedUser.LastLoginAt,
 	}
 
-	return response.JSON(200, userResponse)
+	return response.JSONWithDefault(200, userResponse)
 }
 
 // DeleteUser soft deletes a user (admin only)
@@ -209,26 +209,26 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	user, err := auth.ValidateSessionWithRole(request, models.RoleAdmin)
 	if err != nil {
 		if err.Error() == "insufficient permissions" {
-			return response.SimpleError(403, "Insufficient permissions"), nil
+			return response.SimpleErrorWithDefault(403, "Insufficient permissions"), nil
 		}
-		return response.SimpleError(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
 	}
 
 	// Get user ID from path parameters
 	userID := request.PathParameters["id"]
 	if userID == "" {
-		return response.SimpleError(400, "User ID is required"), nil
+		return response.SimpleErrorWithDefault(400, "User ID is required"), nil
 	}
 
 	// Convert string ID to ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		return response.SimpleError(400, "Invalid user ID format"), nil
+		return response.SimpleErrorWithDefault(400, "Invalid user ID format"), nil
 	}
 
 	// Prevent admin from deleting themselves
 	if objectID == user.ID {
-		return response.SimpleError(400, "Cannot delete your own account"), nil
+		return response.SimpleErrorWithDefault(400, "Cannot delete your own account"), nil
 	}
 
 	// Check if user exists
@@ -236,7 +236,7 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 	var targetUser models.User
 	err = collection.FindOne(context.TODO(), bson.M{"_id": objectID}).Decode(&targetUser)
 	if err != nil {
-		return response.SimpleError(404, "User not found"), nil
+		return response.SimpleErrorWithDefault(404, "User not found"), nil
 	}
 
 	// Delete user's sessions first
@@ -258,8 +258,8 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 		}},
 	)
 	if err != nil {
-		return response.SimpleError(500, "Failed to delete user"), nil
+		return response.SimpleErrorWithDefault(500, "Failed to delete user"), nil
 	}
 
-	return response.SuccessJSON(200, nil, "User deleted successfully")
+	return response.SuccessJSONWithDefault(200, nil, "User deleted successfully")
 }

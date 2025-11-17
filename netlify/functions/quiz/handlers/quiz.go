@@ -10,6 +10,7 @@ import (
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/quiz/services"
 	"egaldeutsch-serverless/netlify/functions/quiz/types"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,20 +25,12 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 
 	collections, err := services.GetCollections()
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Database connection failed"}`,
-		}, nil
+		return response.DatabaseError("Failed to connect to database"), nil
 	}
 
 	id, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Invalid story ID format"}`,
-		}, nil
+		return response.BadRequestError("Invalid story ID format"), nil
 	}
 
 	// Get story
@@ -46,17 +39,9 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 	err = collections[0].FindOne(ctx, filter).Decode(&story)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusNotFound,
-				Headers:    headers,
-				Body:       `{"success": false, "error": "Story not found or not published"}`,
-			}, nil
+			return response.NotFoundError("Story"), nil
 		}
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to fetch story"}`,
-		}, nil
+		return response.DatabaseError("Failed to fetch story"), nil
 	}
 
 	// Get questions for this story, ordered by order field
@@ -65,30 +50,18 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 	findOptions.SetSort(bson.D{{Key: "order", Value: 1}}) // Sort by order field ascending
 	questionsCursor, err := collections[1].Find(ctx, filter, findOptions)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to fetch questions"}`,
-		}, nil
+		return response.DatabaseError("Failed to fetch questions"), nil
 	}
 	defer questionsCursor.Close(ctx)
 
 	var questions []models.Question
 	if err = questionsCursor.All(ctx, &questions); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to decode questions"}`,
-		}, nil
+		return response.DatabaseError("Failed to decode questions"), nil
 	}
 
 	// Check if questions exist
 	if len(questions) == 0 {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusNotFound,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "No questions available for this story. Please generate AI questions first to create a quiz."}`,
-		}, nil
+		return response.NotFoundError("Story"), nil
 	}
 
 	// Remove correct answer from response (for security)
@@ -102,19 +75,15 @@ func GetQuiz(ctx context.Context, storyID string) (events.APIGatewayProxyRespons
 		Questions: questions,
 	}
 
-	response := map[string]interface{}{
+	resp := map[string]interface{}{
 		"success": true,
 		"data":    quiz,
 		"message": fmt.Sprintf("Quiz loaded with %d questions", len(questions)),
 	}
 
-	jsonData, err := json.Marshal(response)
+	jsonData, err := json.Marshal(resp)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to serialize response"}`,
-		}, nil
+		return response.DatabaseError("Failed to serialize response"), nil
 	}
 
 	return events.APIGatewayProxyResponse{
@@ -131,29 +100,17 @@ func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 	collections, err := services.GetCollections()
 
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Database connection failed"}`,
-		}, nil
+		return response.DatabaseError("Failed to connect to database"), nil
 	}
 
 	id, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Invalid story ID format"}`,
-		}, nil
+		return response.BadRequestError("Invalid story ID format"), nil
 	}
 
 	var submissionRequest types.QuizSubmissionRequest
 	if err := json.Unmarshal([]byte(req.Body), &submissionRequest); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Invalid request body"}`,
-		}, nil
+		return response.BadRequestError("Invalid request body"), nil
 	}
 
 	// Get questions with correct answers (ordered by order field)
@@ -163,30 +120,18 @@ func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 	var questionsCursor *mongo.Cursor
 	questionsCursor, err = collections[1].Find(ctx, filter, findOptions)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to fetch questions"}`,
-		}, nil
+		return response.DatabaseError("Failed to fetch questions"), nil
 	}
 	defer questionsCursor.Close(ctx)
 
 	var questions []models.Question
 	if err = questionsCursor.All(ctx, &questions); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
-		}, nil
+		return response.DatabaseError(fmt.Sprintf(`{"error": "%v"}`, err)), nil
 	}
 
 	// Validate answers length
 	if len(submissionRequest.Answers) != len(questions) {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Answer count does not match question count"}`,
-		}, nil
+		return response.BadRequestError("Answer count does not match question count"), nil
 	}
 
 	// Calculate score and track correct answers
@@ -221,11 +166,7 @@ func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 
 	_, err = collections[2].InsertOne(ctx, submission)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to save submission"}`,
-		}, nil
+		return response.DatabaseError("Failed to save submission"), nil
 	}
 
 	// Prepare detailed response using the types
@@ -243,19 +184,15 @@ func SubmitQuiz(ctx context.Context, storyID string, req events.APIGatewayProxyR
 		SubmittedAt:    submission.SubmittedAt,
 	}
 
-	response := map[string]interface{}{
+	resp := map[string]interface{}{
 		"success": true,
 		"data":    result,
 		"message": fmt.Sprintf("Quiz submitted successfully. Score: %d/%d (%.1f%%)", score, len(questions), percentage),
 	}
 
-	jsonData, err := json.Marshal(response)
+	jsonData, err := json.Marshal(resp)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to serialize response"}`,
-		}, nil
+		return response.DatabaseError("Failed to serialize response"), nil
 	}
 
 	return events.APIGatewayProxyResponse{
