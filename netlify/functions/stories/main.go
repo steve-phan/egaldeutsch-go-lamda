@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"egaldeutsch-serverless/netlify/functions/stories/handlers"
-	"egaldeutsch-serverless/netlify/functions/stories/services"
+	"egaldeutsch-serverless/pkg/middleware"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -15,7 +15,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 
 	// Handle OPTIONS request
 	if req.HTTPMethod == "OPTIONS" {
-		return services.HandleCORSOptions(), nil
+		return middleware.HandleCORSOptions(middleware.PublicAPI), nil
 	}
 
 	// Route requests
@@ -39,10 +39,9 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	case method == "POST":
 		return handlers.CreateStory(ctx, req)
 	default:
-		headers := services.GetCORSHeaders()
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusMethodNotAllowed,
-			Headers:    headers,
+			Headers:    middleware.GetPublicCORSHeaders(),
 			Body:       `{"error": "Method not allowed"}`,
 		}, nil
 	}

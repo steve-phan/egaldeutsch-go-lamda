@@ -185,7 +185,7 @@ func getStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResp
 		return errorResponse(400, "Invalid story ID")
 	}
 
-	collection := db.Database.Collection("stories")
+	collection, _ := db.GetCollection(db.Collections.Stories)
 	var story models.Story
 
 	err = collection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&story)
@@ -248,7 +248,7 @@ func listStories(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 		}
 	}
 
-	collection := db.Database.Collection("stories")
+	collection, _ := db.GetCollection(db.Collections.Stories)
 
 	// Get total count
 	total, err := collection.CountDocuments(context.Background(), filter)
@@ -332,7 +332,7 @@ func updateStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 	story.ReadingTime = story.WordCount / 200
 
 	// Update the story in database
-	collection := db.Database.Collection("stories")
+	collection, _ := db.GetCollection(db.Collections.Stories)
 	update := bson.M{
 		"$set": bson.M{
 			"title":       story.Title,
@@ -417,7 +417,7 @@ func updateStoryStatus(request events.APIGatewayProxyRequest) (events.APIGateway
 	}
 
 	// Get current story to validate status transition
-	collection := db.Database.Collection("stories")
+	collection, _ := db.GetCollection(db.Collections.Stories)
 	var currentStory models.Story
 	err = collection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&currentStory)
 	if err != nil {
@@ -543,7 +543,7 @@ func deleteStory(request events.APIGatewayProxyRequest) (events.APIGatewayProxyR
 		return errorResponse(400, "Invalid story ID")
 	}
 
-	collection := db.Database.Collection("stories")
+	collection, _ := db.GetCollection(db.Collections.Stories)
 	// In simplified workflow, delete means permanent removal
 	result, err := collection.DeleteOne(
 		context.Background(),
