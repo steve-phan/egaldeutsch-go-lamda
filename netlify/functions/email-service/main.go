@@ -79,7 +79,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	log.Printf("Email service handler called - Method: %s, Path: %s", request.HTTPMethod, request.Path)
 
 	// Handle CORS preflight requests
-	if corsResponse, handled := middleware.HandleCORS(request); handled {
+	if corsResponse, handled := middleware.HandleAuthenticatedCORS(request); handled {
 		log.Printf("CORS preflight handled")
 		return corsResponse, nil
 	}

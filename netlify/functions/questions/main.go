@@ -11,6 +11,7 @@ import (
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/pkg/middleware"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -19,15 +20,9 @@ import (
 )
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Set CORS headers
-	headers := middleware.GetPublicCORSHeaders()
-
-	// Handle OPTIONS request
-	if req.HTTPMethod == "OPTIONS" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 200,
-			Headers:    headers,
-		}, nil
+	// Handle CORS preflight
+	if corsResponse, handled := middleware.HandlePublicCORS(req); handled {
+		return corsResponse, nil
 	}
 
 	// Route requests
@@ -43,73 +38,40 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 
 	switch {
 	case method == "GET" && storyID != "":
-		return getQuestionsByStoryID(ctx, storyID, headers)
+		return getQuestionsByStoryID(ctx, storyID)
 	case method == "POST":
-		return createQuestion(ctx, req, headers)
+		return createQuestion(ctx, req)
 	default:
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusMethodNotAllowed,
-			Headers:    headers,
-			Body:       `{"error": "Method not allowed"}`,
-		}, nil
+		return response.SimpleError(http.StatusMethodNotAllowed, "Method not allowed", middleware.PublicAPI), nil
 	}
 }
 
-func getQuestionsByStoryID(ctx context.Context, storyID string, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func getQuestionsByStoryID(ctx context.Context, storyID string) (events.APIGatewayProxyResponse, error) {
 	id, err := primitive.ObjectIDFromHex(storyID)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    headers,
-			Body:       `{"error": "Invalid story ID"}`,
-		}, nil
+		return response.SimpleError(http.StatusBadRequest, "Invalid story ID", middleware.PublicAPI), nil
 	}
 
 	questionCollection, _ := db.GetCollection(db.Collections.Questions)
 
 	cursor, err := questionCollection.Find(ctx, bson.M{"storyId": id})
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
-		}, nil
+		return response.SimpleError(http.StatusInternalServerError, err.Error(), middleware.PublicAPI), nil
 	}
 	defer cursor.Close(ctx)
 
 	var questions []models.Question
 	if err = cursor.All(ctx, &questions); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
-		}, nil
+		return response.SimpleError(http.StatusInternalServerError, err.Error(), middleware.PublicAPI), nil
 	}
 
-	jsonData, err := json.Marshal(questions)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
-		}, nil
-	}
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Headers:    headers,
-		Body:       string(jsonData),
-	}, nil
+	return response.JSON(http.StatusOK, questions, middleware.PublicAPI)
 }
 
-func createQuestion(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func createQuestion(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var question models.Question
 	if err := json.Unmarshal([]byte(req.Body), &question); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "Invalid request body: %v"}`, err),
-		}, nil
+		return response.SimpleError(http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err), middleware.PublicAPI), nil
 	}
 
 	question.ID = primitive.NewObjectID()
@@ -118,27 +80,10 @@ func createQuestion(ctx context.Context, req events.APIGatewayProxyRequest, head
 
 	_, err := questionCollection.InsertOne(ctx, question)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
-		}, nil
+		return response.SimpleError(http.StatusInternalServerError, err.Error(), middleware.PublicAPI), nil
 	}
 
-	jsonData, err := json.Marshal(question)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"error": "%v"}`, err),
-		}, nil
-	}
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusCreated,
-		Headers:    headers,
-		Body:       string(jsonData),
-	}, nil
+	return response.JSON(http.StatusCreated, question, middleware.PublicAPI)
 }
 
 func main() {

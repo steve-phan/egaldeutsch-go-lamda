@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+
 	"fmt"
 	"net/http"
 	"time"
@@ -10,6 +10,7 @@ import (
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/pkg/middleware"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -17,37 +18,23 @@ import (
 )
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Set CORS headers
-	headers := middleware.GetPublicCORSHeaders()
-
-	// Handle OPTIONS request
-	if req.HTTPMethod == "OPTIONS" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 200,
-			Headers:    headers,
-		}, nil
+	// Handle CORS preflight
+	if corsResponse, handled := middleware.HandlePublicCORS(req); handled {
+		return corsResponse, nil
 	}
 
 	// Only allow GET requests
 	if req.HTTPMethod != "GET" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusMethodNotAllowed,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Method not allowed"}`,
-		}, nil
+		return response.SimpleError(http.StatusMethodNotAllowed, "Method not allowed", middleware.PublicAPI), nil
 	}
 
-	return getLeaderboard(ctx, req, headers)
+	return getLeaderboard(ctx, req)
 }
 
-func getLeaderboard(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func getLeaderboard(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	submissionsCollection, err := db.GetCollection(db.Collections.Submissions)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Database connection failed"}`,
-		}, nil
+		return response.SimpleError(http.StatusInternalServerError, "Database connection failed", middleware.PublicAPI), nil
 	}
 
 	// Parse query parameters
@@ -124,21 +111,13 @@ func getLeaderboard(ctx context.Context, req events.APIGatewayProxyRequest, head
 
 	cursor, err := submissionsCollection.Aggregate(ctx, pipeline)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       fmt.Sprintf(`{"success": false, "error": "Failed to aggregate leaderboard: %v"}`, err),
-		}, nil
+		return response.SimpleError(http.StatusInternalServerError, fmt.Sprintf("Failed to aggregate leaderboard: %v", err), middleware.PublicAPI), nil
 	}
 	defer cursor.Close(ctx)
 
 	var entries []models.LeaderboardEntry
 	if err = cursor.All(ctx, &entries); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to decode leaderboard"}`,
-		}, nil
+		return response.SimpleError(http.StatusInternalServerError, "Failed to decode leaderboard", middleware.PublicAPI), nil
 	}
 
 	// Assign ranks
@@ -160,31 +139,14 @@ func getLeaderboard(ctx context.Context, req events.APIGatewayProxyRequest, head
 		totalQuizzes = 0
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"data": map[string]interface{}{
-			"entries":           entries,
-			"totalParticipants": len(totalParticipants),
-			"totalQuizzes":      totalQuizzes,
-			"generatedAt":       time.Now(),
-		},
-		"message": fmt.Sprintf("Leaderboard retrieved with %d entries", len(entries)),
+	responseData := map[string]interface{}{
+		"entries":           entries,
+		"totalParticipants": len(totalParticipants),
+		"totalQuizzes":      totalQuizzes,
+		"generatedAt":       time.Now(),
 	}
 
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"success": false, "error": "Failed to serialize response"}`,
-		}, nil
-	}
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Headers:    headers,
-		Body:       string(jsonData),
-	}, nil
+	return response.SuccessJSON(http.StatusOK, responseData, fmt.Sprintf("Leaderboard retrieved with %d entries", len(entries)), middleware.PublicAPI)
 }
 
 func main() {

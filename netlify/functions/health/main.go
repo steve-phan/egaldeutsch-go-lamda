@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+
 	"net/http"
 	"time"
 
 	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/pkg/middleware"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -21,23 +22,13 @@ type HealthResponse struct {
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	headers := middleware.GetPublicCORSHeaders()
-
 	// Handle CORS preflight
-	if req.HTTPMethod == "OPTIONS" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusOK,
-			Headers:    headers,
-			Body:       "",
-		}, nil
+	if corsResponse, handled := middleware.HandlePublicCORS(req); handled {
+		return corsResponse, nil
 	}
 
 	if req.HTTPMethod != "GET" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusMethodNotAllowed,
-			Headers:    headers,
-			Body:       `{"error": "Method not allowed"}`,
-		}, nil
+		return response.SimpleError(http.StatusMethodNotAllowed, "Method not allowed", middleware.PublicAPI), nil
 	}
 
 	healthResponse := HealthResponse{
@@ -62,20 +53,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		statusCode = http.StatusServiceUnavailable
 	}
 
-	jsonData, err := json.Marshal(healthResponse)
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Headers:    headers,
-			Body:       `{"error": "Failed to marshal response"}`,
-		}, nil
-	}
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: statusCode,
-		Headers:    headers,
-		Body:       string(jsonData),
-	}, nil
+	return response.JSON(statusCode, healthResponse, middleware.PublicAPI)
 }
 
 func checkMongoDB(ctx context.Context) string {

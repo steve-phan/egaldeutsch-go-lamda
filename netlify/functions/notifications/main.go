@@ -25,7 +25,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	defer db.Disconnect()
 
 	// Handle CORS preflight requests
-	if corsResponse, handled := middleware.HandleCORS(request); handled {
+	if corsResponse, handled := middleware.HandleAuthenticatedCORS(request); handled {
 		return corsResponse, nil
 	}
 

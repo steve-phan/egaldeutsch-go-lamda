@@ -10,6 +10,7 @@ import (
 	"egaldeutsch-serverless/netlify/functions/ai-generator/services"
 	"egaldeutsch-serverless/netlify/functions/ai-generator/types"
 	"egaldeutsch-serverless/pkg/middleware"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/openai/openai-go"
@@ -29,36 +30,36 @@ func GenerateContent(request events.APIGatewayProxyRequest) (events.APIGatewayPr
 	storyIDStr := request.QueryStringParameters["story_id"]
 
 	if generationType == "" || storyIDStr == "" {
-		return services.ErrorResponse(400, "Missing required parameters: type and story_id"), nil
+		return response.SimpleError(400, "Missing required parameters: type and story_id", middleware.PublicAPI), nil
 	}
 
 	// Validate generation type
 	validTypes := map[string]bool{"questions": true, "quiz": true, "both": true}
 	if !validTypes[generationType] {
-		return services.ErrorResponse(400, "Invalid type. Must be: questions, quiz, or both"), nil
+		return response.SimpleError(400, "Invalid type. Must be: questions, quiz, or both", middleware.PublicAPI), nil
 	}
 
 	// Parse and validate story ID
 	storyID, err := primitive.ObjectIDFromHex(storyIDStr)
 	if err != nil {
-		return services.ErrorResponse(400, "Invalid story ID"), nil
+		return response.SimpleError(400, "Invalid story ID", middleware.PublicAPI), nil
 	}
 
 	// Fetch the story
 	story, err := getStory(storyID)
 	if err != nil {
-		return services.ErrorResponse(404, fmt.Sprintf("Story not found: %v", err)), nil
+		return response.SimpleError(404, fmt.Sprintf("Story not found: %v", err), middleware.PublicAPI), nil
 	}
 
 	// Check if AI questions have already been generated for questions or both
 	if (generationType == "questions" || generationType == "both") && story.IsAIQuestionsGenerated {
-		return services.ErrorResponse(409, "AI questions have already been generated for this story"), nil
+		return response.SimpleError(409, "AI questions have already been generated for this story", middleware.PublicAPI), nil
 	}
 
 	// Get OpenAI API key
 	apiKey := services.GetOpenAIAPIKey()
 	if apiKey == "" {
-		return services.ErrorResponse(500, "OpenAI API key not configured"), nil
+		return response.SimpleError(500, "OpenAI API key not configured", middleware.PublicAPI), nil
 	}
 
 	var result types.GenerationResult
@@ -74,16 +75,10 @@ func GenerateContent(request events.APIGatewayProxyRequest) (events.APIGatewayPr
 	}
 
 	if err != nil {
-		return services.ErrorResponse(500, fmt.Sprintf("Generation failed: %v", err)), nil
+		return response.SimpleError(500, fmt.Sprintf("Generation failed: %v", err), middleware.PublicAPI), nil
 	}
 
-	responseBody, _ := json.Marshal(result)
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Body:       string(responseBody),
-		Headers:    middleware.GetPublicCORSHeaders(),
-	}, nil
+	return response.JSON(200, result, middleware.PublicAPI)
 }
 
 // getStory fetches a story from the database

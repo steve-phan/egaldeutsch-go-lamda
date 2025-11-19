@@ -2,8 +2,9 @@ package main
 
 import (
 	"egaldeutsch-serverless/netlify/functions/ai-generator/handlers"
-	"egaldeutsch-serverless/netlify/functions/ai-generator/services"
+
 	"egaldeutsch-serverless/pkg/middleware"
+	"egaldeutsch-serverless/pkg/response"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -31,7 +32,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 	// Only POST is allowed
 	if request.HTTPMethod != "POST" {
-		return services.ErrorResponse(405, "Method not allowed"), nil
+		return response.SimpleError(405, "Method not allowed", middleware.PublicAPI), nil
 	}
 
 	// Route to main generation handler
