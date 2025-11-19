@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/user-management/services"
 	"egaldeutsch-serverless/netlify/functions/user-management/types"
@@ -103,12 +102,9 @@ func ResetPassword(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 		log.Printf("Failed to mark reset token as used: %v", err)
 	}
 
-	// Invalidate all existing sessions for this user
-	sessionCollection := db.Database.Collection("sessions")
-	_, err = sessionCollection.DeleteMany(context.TODO(), bson.M{"userId": userID})
-	if err != nil {
-		log.Printf("Failed to delete user sessions after password reset: %v", err)
-	}
+	// With JWT auth, no session cleanup needed - user will re-login with new password
+	// Old JWT tokens will naturally expire based on their expiration time
+
 
 	// Send password changed email (we can skip this for now since it's not in our requirements)
 	// TODO: Add password changed email template if needed
