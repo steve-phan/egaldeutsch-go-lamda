@@ -13,7 +13,7 @@ export const USER_KEY = "egaldeutsch_user";
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 seconds to accommodate AI generation
   headers: {
     "Content-Type": "application/json",
   },

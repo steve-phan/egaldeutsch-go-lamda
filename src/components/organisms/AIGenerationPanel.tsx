@@ -17,7 +17,7 @@ interface AIGenerationPanelProps {
   onGenerationComplete?: () => void;
 }
 
-type GenerationType = "questions" | "quiz" | "both";
+type GenerationType = "questions";
 
 interface GenerationResult {
   success: boolean;
@@ -37,13 +37,9 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<GenerationResult | null>(null);
 
-  const handleGenerate = async (type: GenerationType) => {
+  const handleGenerate = async () => {
     setGenerating(true);
-    setProgress(
-      `🤖 Generating ${
-        type === "both" ? "questions and quiz" : type
-      } with AI...`
-    );
+    setProgress(`🤖 Generating questions with AI...`);
     setError("");
     setResult(null);
 
@@ -72,38 +68,21 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
     <Card className="mt-4 border-blue-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          🤖 AI Content Generation
+          🤖 AI Question Generation
         </CardTitle>
         <CardDescription>
-          Generate questions and quizzes using OpenAI for "{storyTitle}"
+          Generate questions using OpenAI for "{storyTitle}"
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Button
-            onClick={() => handleGenerate("questions")}
-            disabled={generating}
-            variant="outline"
-            className="flex-1 min-w-[150px]"
-          >
-            {generating ? "..." : "Generate Questions"}
-          </Button>
-          <Button
-            onClick={() => handleGenerate("quiz")}
-            disabled={generating}
-            variant="outline"
-            className="flex-1 min-w-[150px]"
-          >
-            {generating ? "..." : "Generate Quiz"}
-          </Button>
-          <Button
-            onClick={() => handleGenerate("both")}
-            disabled={generating}
-            className="flex-1 min-w-[150px]"
-          >
-            {generating ? "..." : "Generate Both"}
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="w-full"
+          size="lg"
+        >
+          {generating ? "Generating Questions..." : "🤖 Generate Questions"}
+        </Button>
 
         {progress && (
           <Alert className="mb-4 bg-blue-50 border-blue-200">

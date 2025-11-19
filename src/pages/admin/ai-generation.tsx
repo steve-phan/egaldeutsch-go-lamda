@@ -77,11 +77,10 @@ const AIGenerationPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              🤖 AI Content Generation
+              🤖 AI Question Generation
             </h1>
             <p className="text-muted-foreground">
-              Use AI to automatically generate questions and quizzes for
-              published stories
+              Use AI to automatically generate questions for published stories
             </p>
           </div>
 
@@ -155,7 +154,7 @@ const AIGenerationPage: React.FC = () => {
                         onClick={() => setSelectedStory(story)}
                         className="text-blue-600 hover:text-blue-700 font-medium"
                       >
-                        Generate AI Content →
+                        Generate Questions →
                       </button>
                     )}
                   </CardContent>
@@ -167,22 +166,21 @@ const AIGenerationPage: React.FC = () => {
           <Card className="mt-8 bg-blue-50 border-blue-200">
             <CardHeader>
               <CardTitle className="text-lg">
-                💡 How AI Generation Works
+                💡 How AI Question Generation Works
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <p>
-                • <strong>Questions:</strong> AI generates 8-12 diverse
-                questions covering comprehension, vocabulary, and grammar based
-                on story content
+                • AI analyzes the story content and generates 8-12 diverse
+                questions covering comprehension, vocabulary, and grammar
               </p>
               <p>
-                • <strong>Quiz:</strong> AI creates quiz metadata including
-                title, description, and recommended structure
+                • Each question includes multiple choice options, correct answer,
+                and an explanation
               </p>
               <p>
-                • <strong>Both:</strong> Generates both questions and quiz in
-                one operation
+                • Questions are automatically tagged with difficulty levels
+                (easy, medium, hard)
               </p>
               <p className="pt-2 border-t border-blue-200">
                 ⚠️ All AI-generated content starts in <strong>draft</strong>{" "}
@@ -192,6 +190,9 @@ const AIGenerationPage: React.FC = () => {
                 📝 <strong>Note:</strong> Stories with existing AI-generated
                 questions are automatically filtered out to prevent duplicate
                 generation
+              </p>
+              <p className="pt-2 border-t border-blue-200">
+                ⏱️ <strong>Generation time:</strong> Typically takes 20-30 seconds
               </p>
             </CardContent>
           </Card>
