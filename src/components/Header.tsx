@@ -1,86 +1,142 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "gatsby";
-import { Menu, User, BookOpen, HelpCircle, LayoutDashboard, FileQuestion, Plus } from "lucide-react";
+import { 
+  Menu, 
+  User, 
+  BookOpen, 
+  HelpCircle, 
+  LayoutDashboard, 
+  FileQuestion, 
+  Plus,
+  X,
+  LogOut,
+  Bell,
+  ChevronDown,
+  Sparkles
+} from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { DropdownMenu, DropdownMenuItem } from "./ui/dropdown-menu";
-import { MobileMenu, MobileMenuItem, MobileMenuGroup } from "./ui/mobile-menu";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./NotificationBell";
 
 const Header: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const isCreatorOrAdmin = user?.role === "creator" || user?.role === "admin";
   const isReviewerOrAdmin = user?.role === "reviewer" || user?.role === "admin";
 
+  // Add scroll listener for header backdrop effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Get role badge color
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-red-500/10 text-red-600 border-red-500/20";
+      case "reviewer":
+        return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+      case "creator":
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
+    }
+  };
+
   return (
-    <header className="bg-card shadow-sm border-b border-border sticky top-0 z-30">
+    <header 
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? "bg-background/80 backdrop-blur-lg shadow-lg border-b border-border/50" 
+          : "bg-background border-b border-border"
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link
             to="/"
-            className="text-2xl font-bold text-primary hover:text-primary/90 transition-colors flex-shrink-0"
+            className="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity flex-shrink-0 group"
           >
-            🇩🇪 EgalDeutsch
+            <span className="group-hover:scale-110 transition-transform duration-200">🇩🇪</span>
+            <span>EgalDeutsch</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-2">
+          <nav className="hidden lg:flex items-center space-x-1">
             {/* Public Links */}
             <Link
               to="/"
-              className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="relative text-foreground hover:text-primary px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-accent/50 group"
               activeClassName="text-primary bg-primary/10"
             >
-              Stories
+              <span className="relative z-10">Stories</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
             </Link>
             <Link
               to="/leaderboard"
-              className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="relative text-foreground hover:text-primary px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-accent/50 group"
               activeClassName="text-primary bg-primary/10"
             >
-              Leaderboard
+              <span className="relative z-10">Leaderboard</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
             </Link>
             <Link
               to="/about"
-              className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="relative text-foreground hover:text-primary px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-accent/50 group"
               activeClassName="text-primary bg-primary/10"
             >
-              About
+              <span className="relative z-10">About</span>
+              <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
             </Link>
 
             {/* Content Management - For Creators/Admins */}
             {isCreatorOrAdmin && (
-              <DropdownMenu trigger="Content" align="left">
+              <DropdownMenu 
+                trigger={
+                  <span className="flex items-center gap-1">
+                    <Sparkles size={16} />
+                    Content
+                  </span>
+                } 
+                align="left"
+              >
                 <DropdownMenuItem>
-                  <Link to="/stories/create" className="flex items-center gap-2">
+                  <Link to="/stories/create" className="flex items-center gap-2 w-full">
                     <Plus size={16} />
                     Create Story
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link to="/stories" className="flex items-center gap-2">
+                  <Link to="/stories" className="flex items-center gap-2 w-full">
                     <BookOpen size={16} />
                     Manage Stories
                   </Link>
                 </DropdownMenuItem>
+                <div className="h-px bg-border my-1" />
                 <DropdownMenuItem>
-                  <Link to="/questions/create" className="flex items-center gap-2">
+                  <Link to="/questions/create" className="flex items-center gap-2 w-full">
                     <Plus size={16} />
                     Create Question
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link to="/questions" className="flex items-center gap-2">
+                  <Link to="/questions" className="flex items-center gap-2 w-full">
                     <HelpCircle size={16} />
                     Manage Questions
                   </Link>
                 </DropdownMenuItem>
+                <div className="h-px bg-border my-1" />
                 <DropdownMenuItem>
-                  <Link to="/quiz/create" className="flex items-center gap-2">
+                  <Link to="/quiz/create" className="flex items-center gap-2 w-full">
                     <Plus size={16} />
                     Create Quiz
                   </Link>
@@ -92,56 +148,73 @@ const Header: React.FC = () => {
             {isReviewerOrAdmin && (
               <Link
                 to="/admin"
-                className="text-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="relative text-foreground hover:text-primary px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-accent/50 group flex items-center gap-2"
                 activeClassName="text-primary bg-primary/10"
               >
-                Admin
+                <LayoutDashboard size={16} />
+                <span className="relative z-10">Admin</span>
+                <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
               </Link>
             )}
 
             {/* User Menu */}
             {isAuthenticated && user ? (
-              <>
+              <div className="flex items-center gap-2 ml-2">
                 <NotificationBell className="mx-1" />
                 
                 <DropdownMenu
                   trigger={
-                    <div className="flex items-center gap-2">
-                      <User size={16} />
-                      <span>{user.firstName}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {user.role}
-                      </Badge>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-accent/50 transition-all cursor-pointer">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-md">
+                        {user.firstName?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="hidden xl:block text-left">
+                        <div className="text-sm font-medium">{user.firstName}</div>
+                        <div className="text-xs text-muted-foreground capitalize">{user.role}</div>
+                      </div>
                     </div>
                   }
                   align="right"
                 >
+                  <div className="px-3 py-2 border-b border-border">
+                    <div className="font-medium">{user.firstName} {user.lastName}</div>
+                    <div className="text-xs text-muted-foreground">{user.email}</div>
+                    <Badge className={`text-xs mt-2 ${getRoleBadgeColor(user.role)}`}>
+                      {user.role}
+                    </Badge>
+                  </div>
                   <DropdownMenuItem>
-                    <Link to="/profile" className="flex items-center gap-2">
+                    <Link to="/profile" className="flex items-center gap-2 w-full">
                       <User size={16} />
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Link to="/notifications" className="flex items-center gap-2">
-                      <span>Notifications</span>
+                    <Link to="/notifications" className="flex items-center gap-2 w-full">
+                      <Bell size={16} />
+                      Notifications
                     </Link>
                   </DropdownMenuItem>
-                  <div className="border-t border-border my-1" />
+                  <div className="h-px bg-border my-1" />
                   <DropdownMenuItem onClick={logout}>
-                    <span className="text-destructive">Logout</span>
+                    <span className="flex items-center gap-2 w-full text-destructive">
+                      <LogOut size={16} />
+                      Logout
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenu>
-              </>
+              </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2 ml-2">
                 <Link to="/auth/login">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="hover:bg-accent/50">
                     Login
                   </Button>
                 </Link>
                 <Link to="/auth/register">
-                  <Button size="sm">Sign Up</Button>
+                  <Button size="sm" className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-md">
+                    Sign Up
+                  </Button>
                 </Link>
               </div>
             )}
@@ -149,7 +222,7 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden p-2 rounded-md hover:bg-accent transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-accent/50 transition-colors"
             onClick={() => setIsMobileMenuOpen(true)}
             aria-label="Open menu"
           >
@@ -158,136 +231,192 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      <MobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
+      {/* Mobile Navigation Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Navigation Drawer */}
+      <div
+        className={`fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-background shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
       >
-        {/* User Info (if authenticated) */}
-        {isAuthenticated && user && (
-          <MobileMenuGroup title="Account">
-            <MobileMenuItem>
-              <Link
-                to="/profile"
-                className="flex items-center gap-3"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <User size={18} />
-                <div>
-                  <div className="font-medium">{user.firstName}</div>
-                  <Badge variant="outline" className="text-xs mt-1">
-                    {user.role}
-                  </Badge>
-                </div>
-              </Link>
-            </MobileMenuItem>
-            <MobileMenuItem>
-              <Link
-                to="/notifications"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Notifications
-              </Link>
-            </MobileMenuItem>
-          </MobileMenuGroup>
-        )}
-
-        {/* Main Navigation */}
-        <MobileMenuGroup title="Navigation">
-          <MobileMenuItem>
-            <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
-              Stories
-            </Link>
-          </MobileMenuItem>
-          <MobileMenuItem>
-            <Link to="/leaderboard" onClick={() => setIsMobileMenuOpen(false)}>
-              Leaderboard
-            </Link>
-          </MobileMenuItem>
-          <MobileMenuItem>
-            <Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>
-              About
-            </Link>
-          </MobileMenuItem>
-          {isReviewerOrAdmin && (
-            <MobileMenuItem>
-              <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-                Admin Dashboard
-              </Link>
-            </MobileMenuItem>
-          )}
-        </MobileMenuGroup>
-
-        {/* Content Management (for creators/admins) */}
-        {isCreatorOrAdmin && (
-          <MobileMenuGroup title="Content Management">
-            <MobileMenuItem>
-              <Link
-                to="/stories/create"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Create Story
-              </Link>
-            </MobileMenuItem>
-            <MobileMenuItem>
-              <Link to="/stories" onClick={() => setIsMobileMenuOpen(false)}>
-                Manage Stories
-              </Link>
-            </MobileMenuItem>
-            <MobileMenuItem>
-              <Link
-                to="/questions/create"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Create Question
-              </Link>
-            </MobileMenuItem>
-            <MobileMenuItem>
-              <Link to="/questions" onClick={() => setIsMobileMenuOpen(false)}>
-                Manage Questions
-              </Link>
-            </MobileMenuItem>
-            <MobileMenuItem>
-              <Link
-                to="/quiz/create"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Create Quiz
-              </Link>
-            </MobileMenuItem>
-          </MobileMenuGroup>
-        )}
-
-        {/* Auth Actions */}
-        {isAuthenticated && user ? (
-          <div className="mt-6 pt-6 border-t border-border">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => {
-                logout();
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              Logout
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-6 pt-6 border-t border-border space-y-2">
-            <Link to="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full">
-                Login
-              </Button>
-            </Link>
-            <Link
-              to="/auth/register"
+        <div className="flex flex-col h-full">
+          {/* Mobile Menu Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/5 to-purple-600/5">
+            <h2 className="text-lg font-semibold">Menu</h2>
+            <button
               onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 rounded-lg hover:bg-accent/50 transition-colors"
+              aria-label="Close menu"
             >
-              <Button className="w-full">Sign Up</Button>
-            </Link>
+              <X size={20} />
+            </button>
           </div>
-        )}
-      </MobileMenu>
+
+          {/* Mobile Menu Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {/* User Info (if authenticated) */}
+            {isAuthenticated && user && (
+              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-primary/10 to-purple-600/10 border border-primary/20">
+                <Link
+                  to="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3"
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white text-lg font-semibold shadow-lg">
+                    {user.firstName?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-base">{user.firstName} {user.lastName}</div>
+                    <Badge className={`text-xs mt-1 ${getRoleBadgeColor(user.role)}`}>
+                      {user.role}
+                    </Badge>
+                  </div>
+                </Link>
+              </div>
+            )}
+
+            {/* Main Navigation */}
+            <div className="mb-6">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
+                Navigation
+              </h3>
+              <div className="space-y-1">
+                <Link 
+                  to="/" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                >
+                  <BookOpen size={20} />
+                  Stories
+                </Link>
+                <Link 
+                  to="/leaderboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                >
+                  <LayoutDashboard size={20} />
+                  Leaderboard
+                </Link>
+                <Link 
+                  to="/about" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                >
+                  <HelpCircle size={20} />
+                  About
+                </Link>
+                {isAuthenticated && user && (
+                  <Link 
+                    to="/notifications" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <Bell size={20} />
+                    Notifications
+                  </Link>
+                )}
+                {isReviewerOrAdmin && (
+                  <Link 
+                    to="/admin" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <LayoutDashboard size={20} />
+                    Admin Dashboard
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Content Management (for creators/admins) */}
+            {isCreatorOrAdmin && (
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
+                  Content Management
+                </h3>
+                <div className="space-y-1">
+                  <Link
+                    to="/stories/create"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <Plus size={20} />
+                    Create Story
+                  </Link>
+                  <Link 
+                    to="/stories" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <BookOpen size={20} />
+                    Manage Stories
+                  </Link>
+                  <Link
+                    to="/questions/create"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <Plus size={20} />
+                    Create Question
+                  </Link>
+                  <Link 
+                    to="/questions" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <FileQuestion size={20} />
+                    Manage Questions
+                  </Link>
+                  <Link
+                    to="/quiz/create"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-accent/50 transition-all text-foreground font-medium"
+                  >
+                    <Plus size={20} />
+                    Create Quiz
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Menu Footer */}
+          <div className="p-4 border-t border-border bg-muted/30">
+            {isAuthenticated && user ? (
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 font-medium"
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <LogOut size={18} className="mr-2" />
+                Logout
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <Link to="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full font-medium">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-md font-medium">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </header>
   );
 };
