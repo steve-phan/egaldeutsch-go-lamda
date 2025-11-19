@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"egaldeutsch-serverless/db"
-	"egaldeutsch-serverless/pkg/auth"
 	"egaldeutsch-serverless/pkg/middleware"
 	"egaldeutsch-serverless/pkg/notification"
 	"egaldeutsch-serverless/pkg/response"
@@ -50,10 +49,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 // listNotifications retrieves notifications for the authenticated user
 func listNotifications(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Parse query parameters
@@ -100,10 +103,14 @@ func listNotifications(request events.APIGatewayProxyRequest) (events.APIGateway
 
 // getUnreadCount returns the count of unread notifications
 func getUnreadCount(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Get unread count
@@ -122,10 +129,14 @@ func getUnreadCount(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 // markAsRead marks a single notification as read
 func markAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Get notification ID from path or body
@@ -159,10 +170,14 @@ func markAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 
 // markAllAsRead marks all notifications as read for the user
 func markAllAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Mark all as read
@@ -176,10 +191,14 @@ func markAllAsRead(request events.APIGatewayProxyRequest) (events.APIGatewayProx
 
 // deleteNotification deletes a notification
 func deleteNotification(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Get notification ID

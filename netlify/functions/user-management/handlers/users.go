@@ -3,14 +3,11 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
-	"egaldeutsch-serverless/db"
 	"egaldeutsch-serverless/models"
 	"egaldeutsch-serverless/netlify/functions/user-management/services"
 	"egaldeutsch-serverless/netlify/functions/user-management/types"
-	"egaldeutsch-serverless/pkg/auth"
 	"egaldeutsch-serverless/pkg/middleware"
 	"egaldeutsch-serverless/pkg/response"
 
@@ -22,10 +19,14 @@ import (
 
 // GetUserProfile returns the current user's profile
 func GetUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session using auth package
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Return user profile
@@ -47,19 +48,10 @@ func GetUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 // ListUsers returns a list of users (admin/reviewer only)
 func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// // Validate session and check admin/reviewer role using auth package
-	// _, err := auth.ValidateSessionWithRole(request, models.RoleAdmin, models.RoleReviewer)
-	// if err != nil {
-	// 	if err.Error() == "insufficient permissions" {
-	// 		return response.SimpleError(403, "Insufficient permissions"), nil
-	// 	}
-	// 	return response.SimpleError(401, "Unauthorized 1"), nil
-	// }
-
-	//validate jwt token
-	_, err := middleware.ValidateJWT(request)
-	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized 2"), nil
+	// Validate JWT (any authenticated user can list users for now)
+	_, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
 	}
 
 	// Get query parameters for filtering
@@ -108,11 +100,14 @@ func ListUsers(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 
 // UpdateUserProfile updates user profile information
 func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session using auth package
-
-	user, err := auth.ValidateSession(request)
+	// Validate JWT
+	claims, errResponse := middleware.RequireAuth(request)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	var updateReq types.UserUpdateRequest
@@ -205,13 +200,14 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 
 // DeleteUser soft deletes a user (admin only)
 func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Validate session and check admin role using auth package
-	user, err := auth.ValidateSessionWithRole(request, models.RoleAdmin)
+	// Validate JWT and check admin role
+	claims, errResponse := middleware.RequireRole(request, models.RoleAdmin)
+	if errResponse != nil {
+		return *errResponse, nil
+	}
+	user, err := middleware.GetUserFromClaims(claims)
 	if err != nil {
-		if err.Error() == "insufficient permissions" {
-			return response.SimpleErrorWithDefault(403, "Insufficient permissions"), nil
-		}
-		return response.SimpleErrorWithDefault(401, "Unauthorized"), nil
+		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
 	// Get user ID from path parameters
@@ -239,12 +235,7 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 		return response.SimpleErrorWithDefault(404, "User not found"), nil
 	}
 
-	// Delete user's sessions first
-	sessionCollection := db.Database.Collection("sessions") //TODO remove session
-	_, err = sessionCollection.DeleteMany(context.TODO(), bson.M{"userId": objectID})
-	if err != nil {
-		log.Printf("Failed to delete user sessions: %v", err)
-	}
+	// JWT-based auth doesn't require session cleanup - tokens expire automatically
 
 	// Instead of hard delete, we'll soft delete by setting status to suspended
 	// This preserves content relationships and audit trail

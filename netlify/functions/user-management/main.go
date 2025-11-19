@@ -84,9 +84,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	case "PUT":
 		return handlers.UpdateUserProfile(request)
 	case "DELETE":
-		if strings.Contains(request.Path, "/logout") {
-			return handlers.LogoutUser(request)
-		}
 		return handlers.DeleteUser(request)
 	default:
 		return response.SimpleErrorWithDefault(405, "Method not allowed"), nil
