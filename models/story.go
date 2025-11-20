@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -44,6 +45,7 @@ type ContentMetadata struct {
 type Story struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Title       string             `bson:"title" json:"title"`
+	Slug        string             `bson:"slug" json:"slug"` // URL-friendly slug generated from title
 	Content     string             `bson:"content" json:"content"`
 	Level       string             `bson:"level" json:"level"` // A1, A2, B1, B2, C1, C2
 	WordCount   int                `bson:"wordCount" json:"wordCount"`
@@ -300,4 +302,51 @@ func (qz *Quiz) Validate() error {
 	}
 
 	return nil
+}
+
+// GenerateSlug creates a URL-friendly slug from a title
+// Converts to lowercase, replaces spaces with hyphens, removes special characters
+// Transliterates German characters (ä->ae, ö->oe, ü->ue, ß->ss)
+func GenerateSlug(title string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(title)
+
+	// Transliterate German characters
+	slug = strings.ReplaceAll(slug, "ä", "ae")
+	slug = strings.ReplaceAll(slug, "ö", "oe")
+	slug = strings.ReplaceAll(slug, "ü", "ue")
+	slug = strings.ReplaceAll(slug, "ß", "ss")
+	slug = strings.ReplaceAll(slug, "Ä", "ae")
+	slug = strings.ReplaceAll(slug, "Ö", "oe")
+	slug = strings.ReplaceAll(slug, "Ü", "ue")
+
+	// Replace spaces and underscores with hyphens
+	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = strings.ReplaceAll(slug, "_", "-")
+
+	// Remove all non-alphanumeric characters except hyphens
+	var result strings.Builder
+	for _, char := range slug {
+		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-' {
+			result.WriteRune(char)
+		}
+	}
+	slug = result.String()
+
+	// Remove consecutive hyphens
+	for strings.Contains(slug, "--") {
+		slug = strings.ReplaceAll(slug, "--", "-")
+	}
+
+	// Trim hyphens from start and end
+	slug = strings.Trim(slug, "-")
+
+	// Limit length to 60 characters
+	if len(slug) > 60 {
+		slug = slug[:60]
+		// Trim hyphen if it's at the end after truncation
+		slug = strings.TrimRight(slug, "-")
+	}
+
+	return slug
 }
