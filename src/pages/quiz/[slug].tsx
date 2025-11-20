@@ -3,11 +3,11 @@ import { Link, navigate } from "gatsby";
 import Layout from "../../components/layout";
 import { QuizQuestion, QuizResults } from "../../components/Quiz";
 import { Quiz, QuizResult } from "../../types";
-import { fetchQuizByStoryId, submitQuiz } from "../../utils/api";
+import { fetchQuizByStorySlug, submitQuiz } from "../../utils/api";
 
 interface QuizPageProps {
   params: {
-    storyId: string;
+    slug: string;
   };
 }
 
@@ -22,16 +22,16 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
   const [showResults, setShowResults] = useState<boolean>(false);
 
   useEffect(() => {
-    if (params.storyId) {
-      loadQuiz(params.storyId);
+    if (params.slug) {
+      loadQuiz(params.slug);
     }
-  }, [params.storyId]);
+  }, [params.slug]);
 
-  const loadQuiz = async (storyId: string) => {
+  const loadQuiz = async (slug: string) => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedQuiz = await fetchQuizByStoryId(storyId);
+      const fetchedQuiz = await fetchQuizByStorySlug(slug);
       setQuiz(fetchedQuiz);
       // Initialize answers array with -1 (no answer selected)
       setAnswers(new Array(fetchedQuiz.questions.length).fill(-1));
@@ -93,8 +93,8 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
   };
 
   const handleReturnToStory = () => {
-    if (quiz?.storyId) {
-      navigate(`/story/${quiz.storyId}`);
+    if (quiz?.story?.slug) {
+      navigate(`/story/${quiz.story.slug}`);
     }
   };
 
@@ -133,7 +133,7 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
                 </p>
                 <div className="space-y-3">
                   <Link
-                    to={`/story/${params.storyId}`}
+                    to={`/story/${params.slug}`}
                     className="block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                   >
                     Read Story Instead
@@ -161,16 +161,16 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
                 >
                   Back to Stories
                 </Link>
-                {params.storyId && (
+                {params.slug && (
                   <>
                     <Link
-                      to={`/story/${params.storyId}`}
+                      to={`/story/${params.slug}`}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition-colors mr-3"
                     >
                       Read Story First
                     </Link>
                     <button
-                      onClick={() => loadQuiz(params.storyId)}
+                      onClick={() => loadQuiz(params.slug)}
                       className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors"
                     >
                       Try Again
@@ -210,7 +210,7 @@ const QuizPage: React.FC<QuizPageProps> = ({ params }) => {
         {/* Header */}
         <div className="mb-8">
           <Link
-            to={`/story/${quiz.storyId}`}
+            to={`/story/${quiz.story?.slug || params.slug}`}
             className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
           >
             ← Back to Story

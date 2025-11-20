@@ -20,6 +20,7 @@ type StoryRequest struct {
 type StoryResponse struct {
 	ID                     string                  `json:"id"`
 	Title                  string                  `json:"title"`
+	Slug                   string                  `json:"slug"`
 	Content                string                  `json:"content"`
 	Level                  string                  `json:"level"`
 	WordCount              int                     `json:"wordCount"`

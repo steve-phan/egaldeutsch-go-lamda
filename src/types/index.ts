@@ -8,6 +8,7 @@ export interface VocabularyWord {
 export interface Story {
   id: string;
   title: string;
+  slug: string;
   content: string;
   level: string; // A1, A2, B1, B2, C1, C2
   wordCount: number;

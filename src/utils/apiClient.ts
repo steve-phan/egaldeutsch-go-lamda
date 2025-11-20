@@ -63,10 +63,13 @@ export const publicApi = {
   getStories: (status?: string) =>
     apiClient.get(status ? `/stories?status=${status}` : "/stories"),
   getStoryById: (id: string) => apiClient.get(`/stories?id=${id}`),
+  getStoryBySlug: (slug: string) => apiClient.get(`/stories/${slug}`),
 
   // Quiz (public viewing)
   getQuizByStoryId: (storyId: string) =>
     apiClient.get(`/quiz?story_id=${storyId}`),
+  getQuizByStorySlug: (slug: string) =>
+    apiClient.get(`/quiz?story_slug=${slug}`),
   submitQuiz: (storyId: string, answers: number[]) =>
     apiClient.post(`/quiz?story_id=${storyId}&action=submit`, { answers }),
 

@@ -37,6 +37,19 @@ export const fetchStoryById = async (storyId: string): Promise<Story> => {
   }
 };
 
+export const fetchStoryBySlug = async (slug: string): Promise<Story> => {
+  try {
+    const response = await publicApi.getStoryBySlug(slug);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error || "Failed to fetch story");
+  } catch (error) {
+    console.error("Error fetching story by slug:", error);
+    throw error;
+  }
+};
+
 // Quiz API
 export const fetchQuizByStoryId = async (storyId: string): Promise<Quiz> => {
   try {
@@ -47,6 +60,19 @@ export const fetchQuizByStoryId = async (storyId: string): Promise<Quiz> => {
     throw new Error(response.data.error || "Failed to fetch quiz");
   } catch (error) {
     console.error("Error fetching quiz:", error);
+    throw error;
+  }
+};
+
+export const fetchQuizByStorySlug = async (slug: string): Promise<Quiz> => {
+  try {
+    const response = await publicApi.getQuizByStorySlug(slug);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error || "Failed to fetch quiz");
+  } catch (error) {
+    console.error("Error fetching quiz by slug:", error);
     throw error;
   }
 };

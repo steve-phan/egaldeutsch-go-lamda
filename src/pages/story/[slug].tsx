@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link, navigate } from "gatsby";
 import Layout from "../../components/layout";
 import { Story } from "../../types";
-import { fetchStoryById, formatLevel, getLevelColor } from "../../utils/api";
+import { fetchStoryBySlug, formatLevel, getLevelColor } from "../../utils/api";
 
 interface StoryPageProps {
   params: {
-    storyId: string;
+    slug: string;
   };
 }
 
@@ -16,16 +16,16 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (params.storyId) {
-      loadStory(params.storyId);
+    if (params.slug) {
+      loadStory(params.slug);
     }
-  }, [params.storyId]);
+  }, [params.slug]);
 
-  const loadStory = async (storyId: string) => {
+  const loadStory = async (slug: string) => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedStory = await fetchStoryById(storyId);
+      const fetchedStory = await fetchStoryBySlug(slug);
       setStory(fetchedStory);
     } catch (err) {
       console.error("Error fetching story:", err);
@@ -36,8 +36,8 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
   };
 
   const handleTakeQuiz = () => {
-    if (story) {
-      navigate(`/quiz/${story.id}`);
+    if (story && story.slug) {
+      navigate(`/quiz/${story.slug}`);
     }
   };
 
@@ -70,9 +70,9 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
               >
                 Back to Stories
               </Link>
-              {params.storyId && (
+              {params.slug && (
                 <button
-                  onClick={() => loadStory(params.storyId)}
+                  onClick={() => loadStory(params.slug)}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors"
                 >
                   Try Again

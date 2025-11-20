@@ -72,12 +72,12 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, className = "" }) => {
       </CardContent>
 
       <CardFooter className="flex space-x-3 mt-auto">
-        <Link to={`/story/${story.id}`} className="flex-1">
+        <Link to={`/story/${story.slug}`} className="flex-1">
           <Button variant="default" className="w-full">
             Read Story
           </Button>
         </Link>
-        <Link to={`/quiz/${story.id}`} className="flex-1">
+        <Link to={`/quiz/${story.slug}`} className="flex-1">
           <Button variant="success" className="w-full">
             Take Quiz
           </Button>
