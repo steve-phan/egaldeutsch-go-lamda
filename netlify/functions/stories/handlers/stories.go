@@ -110,6 +110,43 @@ func GetStoryByID(ctx context.Context, storyID string) (events.APIGatewayProxyRe
 	}, nil
 }
 
+// GetStoryBySlug retrieves a specific story by its slug
+func GetStoryBySlug(ctx context.Context, slug string) (events.APIGatewayProxyResponse, error) {
+	headers := middleware.GetCORSHeaders()
+
+	storiesCollection, err := db.GetCollection(db.Collections.Stories)
+	if err != nil {
+		return response.DatabaseError("Failed to connect to database"), nil
+	}
+
+	var story models.Story
+	filter := bson.M{"slug": slug, "status": "published"}
+	err = storiesCollection.FindOne(ctx, filter).Decode(&story)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return response.NotFoundError("Story"), nil
+		}
+		return response.DatabaseError("Failed to fetch story"), nil
+	}
+
+	resp := map[string]interface{}{
+		"success": true,
+		"data":    story,
+		"message": "Story retrieved successfully",
+	}
+
+	jsonData, err := json.Marshal(resp)
+	if err != nil {
+		return response.DatabaseError("Failed to serialize response"), nil
+	}
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Headers:    headers,
+		Body:       string(jsonData),
+	}, nil
+}
+
 // CreateStory creates a new story
 func CreateStory(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := middleware.GetCORSHeaders()

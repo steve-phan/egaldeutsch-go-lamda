@@ -22,13 +22,15 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    // Only add token if it exists
-    const token = localStorage.getItem(TOKEN_KEY);
+    // Only add token if it exists and we're in a browser environment
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem(TOKEN_KEY);
 
-    console.log("Request interceptor - token:", token ? "present" : "null");
+      console.log("Request interceptor - token:", token ? "present" : "null");
 
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -41,16 +43,15 @@ apiClient.interceptors.response.use(
   (error) => {
     // Handle 401 errors (token expired/invalid)
     if (error.response?.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem("egaldeutsch_user");
+      // Clear invalid token (only in browser)
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem("egaldeutsch_user");
 
-      // Redirect to login if not already there
-      if (
-        typeof window !== "undefined" &&
-        !window.location.pathname.includes("/auth")
-      ) {
-        window.location.href = "/auth/login";
+        // Redirect to login if not already there
+        if (!window.location.pathname.includes("/auth")) {
+          window.location.href = "/auth/login";
+        }
       }
     }
     return Promise.reject(error);
@@ -141,10 +142,12 @@ export const protectedApi = {
 
 // Utility functions
 export const isAuthenticated = (): boolean => {
+  if (typeof window === "undefined") return false;
   return !!localStorage.getItem(TOKEN_KEY);
 };
 
 export const getAuthToken = (): string | null => {
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
 };
 

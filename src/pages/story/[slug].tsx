@@ -1,35 +1,46 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, navigate } from "gatsby";
 import Layout from "../../components/layout";
 import { Story } from "../../types";
-import { fetchStoryBySlug, formatLevel, getLevelColor } from "../../utils/api";
+import { formatLevel, getLevelColor } from "../../utils/api";
+import { publicApi } from "../../utils/apiClient";
 
 interface StoryPageProps {
   params: {
     slug: string;
   };
+  serverData?: {
+    story: Story | null;
+    error: string | null;
+  };
 }
 
-const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
-  const [story, setStory] = useState<Story | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+const StoryPage: React.FC<StoryPageProps> = ({ params, serverData }) => {
+  const [story, setStory] = useState<Story | null>(serverData?.story || null);
+  const [error, setError] = useState<string | null>(serverData?.error || null);
+  const [loading, setLoading] = useState(!serverData);
 
   useEffect(() => {
-    if (params.slug) {
+    // Only fetch if we don't have serverData (client-side navigation or dev mode)
+    if (!serverData && params.slug) {
       loadStory(params.slug);
     }
-  }, [params.slug]);
+  }, [params.slug, serverData]);
 
   const loadStory = async (slug: string) => {
     try {
       setLoading(true);
       setError(null);
-      const fetchedStory = await fetchStoryBySlug(slug);
-      setStory(fetchedStory);
-    } catch (err) {
+      const response = await publicApi.getStoryBySlug(slug);
+       
+      if (response.data.success && response.data.data) {
+        setStory(response.data.data);
+      } else {
+        setError(response.data.error || "Story not found");
+      }
+    } catch (err: any) {
       console.error("Error fetching story:", err);
-      setError("Failed to load story. Please try again later.");
+      setError(err.response?.data?.error || "Failed to load story");
     } finally {
       setLoading(false);
     }
@@ -66,18 +77,10 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
             <div className="mt-4">
               <Link
                 to="/"
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors mr-3"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors"
               >
                 Back to Stories
               </Link>
-              {params.slug && (
-                <button
-                  onClick={() => loadStory(params.slug)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors"
-                >
-                  Try Again
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -196,3 +199,53 @@ const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
 };
 
 export default StoryPage;
+
+// Server-side data fetching for SEO (only works in production build)
+export async function getServerData({ params }: { params: { slug: string } }) {
+  try {
+    const response = await publicApi.getStoryBySlug(params.slug);
+      
+    if (response.data.success && response.data.data) {
+      return {
+        props: {
+          story: response.data.data,
+          error: null,
+        },
+      };
+    }
+    
+    return {
+      props: {
+        story: null,
+        error: response.data.error || "Story not found",
+      },
+    };
+  } catch (err: any) {
+    console.error("Error fetching story on server:", err);
+    return {
+      props: {
+        story: null,
+        error: err.response?.data?.error || "Failed to load story",
+      },
+    };
+  }
+}
+
+// SEO Head export
+export function Head({ serverData }: { serverData?: { story: Story | null } }) {
+  const story = serverData?.story;
+  
+  if (!story) {
+    return <title>Story Not Found | Egal Deutsch</title>;
+  }
+
+  return (
+    <>
+      <title>{story.title} | Egal Deutsch</title>
+      <meta name="description" content={story.summary || story.content?.substring(0, 160)} />
+      <meta property="og:title" content={story.title} />
+      <meta property="og:description" content={story.summary || story.content?.substring(0, 160)} />
+      <meta property="og:type" content="article" />
+    </>
+  );
+}
