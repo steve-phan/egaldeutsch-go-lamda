@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { ErrorAlert } from "../../components/atoms/ErrorAlert";
 import { UserFilterBar } from "../../components/molecules/UserFilterBar";
 import { UserManagementList } from "../../components/organisms/UserManagementList";
+import { ConfirmationDialog } from "../../components/molecules/ConfirmationDialog";
 import { useUserManagement, UserAction } from "../../hooks/useUserManagement";
 import { useUserFilters } from "../../hooks/useUserFilters";
 
@@ -27,6 +28,19 @@ const UsersPage: React.FC = () => {
     setSearchQuery,
   } = useUserFilters(users);
   const [error, setError] = useState("");
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    open: boolean;
+    userId: string | null;
+    action: UserAction | null;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    userId: null,
+    action: null,
+    title: "",
+    description: "",
+  });
 
   useEffect(() => {
     loadUsers();
@@ -38,9 +52,35 @@ const UsersPage: React.FC = () => {
       return;
     }
 
+    // For delete action, show confirmation dialog
+    if (action === "delete") {
+      const user = users.find((u) => u.id === userId);
+      setConfirmationDialog({
+        open: true,
+        userId,
+        action,
+        title: "Delete User",
+        description: `Are you sure you want to delete ${user?.firstName} ${user?.lastName}? This action cannot be undone.`,
+      });
+      return;
+    }
+
+    // For other actions, execute immediately
     try {
       setError("");
       await performUserAction(userId, action);
+      await loadUsers();
+    } catch (err: any) {
+      setError(err.message || "Failed to perform action");
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmationDialog.userId || !confirmationDialog.action) return;
+
+    try {
+      setError("");
+      await performUserAction(confirmationDialog.userId, confirmationDialog.action);
       await loadUsers();
     } catch (err: any) {
       setError(err.message || "Failed to perform action");
@@ -81,6 +121,19 @@ const UsersPage: React.FC = () => {
           currentUserId={currentUser?.id}
           onUserAction={handleUserAction}
           isAdmin={isAdmin}
+        />
+
+        <ConfirmationDialog
+          open={confirmationDialog.open}
+          onOpenChange={(open) =>
+            setConfirmationDialog((prev) => ({ ...prev, open }))
+          }
+          onConfirm={handleConfirmAction}
+          title={confirmationDialog.title}
+          description={confirmationDialog.description}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
         />
       </div>
     </Layout>

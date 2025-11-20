@@ -34,4 +34,5 @@ type UserUpdateRequest struct {
 	Email       *string `json:"email,omitempty"`
 	OldPassword *string `json:"oldPassword,omitempty"`
 	NewPassword *string `json:"newPassword,omitempty"`
+	Status      *string `json:"status,omitempty"`
 }

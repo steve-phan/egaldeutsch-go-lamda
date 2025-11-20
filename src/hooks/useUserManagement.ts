@@ -47,15 +47,7 @@ export const useUserManagement = (currentUserId?: string) => {
 
             break;
           case "delete":
-            if (
-              window.confirm(
-                "Are you sure you want to delete this user? This action cannot be undone."
-              )
-            ) {
-              await protectedApi.deleteUser(userId);
-            } else {
-              return false;
-            }
+            await protectedApi.deleteUser(userId);
             break;
           case "promote":
             const targetUser = users.find((u) => u.id === userId);

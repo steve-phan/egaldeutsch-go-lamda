@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"egaldeutsch-serverless/models"
@@ -110,6 +111,40 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
+	// Get user ID from path
+	// Path format: /user-management/{userId} or /.netlify/functions/user-management/{userId}
+	var targetUserID primitive.ObjectID
+	if len(request.PathParameters) > 0 && request.PathParameters["id"] != "" {
+		// Use path parameter if available (from configured redirects)
+		var err error
+		targetUserID, err = primitive.ObjectIDFromHex(request.PathParameters["id"])
+		if err != nil {
+			return response.SimpleErrorWithDefault(400, "Invalid user ID format"), nil
+		}
+	} else {
+		// Extract from path manually
+		parts := strings.Split(strings.Trim(request.Path, "/"), "/")
+		if len(parts) < 2 {
+			// No user ID in path, update own profile
+			targetUserID = user.ID
+		} else {
+			userIDStr := parts[len(parts)-1]
+			var err error
+			targetUserID, err = primitive.ObjectIDFromHex(userIDStr)
+			if err != nil {
+				// If parsing fails, assume updating own profile
+				targetUserID = user.ID
+			}
+		}
+	}
+
+	// Check if user has permission to update this user
+	// Admins can update any user, other users can only update themselves
+	if user.Role != models.RoleAdmin && targetUserID != user.ID {
+		return response.SimpleErrorWithDefault(403, "Insufficient permissions"), nil
+	}
+
+	// Parse request body
 	var updateReq types.UserUpdateRequest
 	if err := json.Unmarshal([]byte(request.Body), &updateReq); err != nil {
 		return response.SimpleErrorWithDefault(400, "Invalid request format"), nil
@@ -124,6 +159,10 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 	}
 	if updateReq.LastName != nil {
 		updateFields["lastName"] = *updateReq.LastName
+	}
+
+	if updateReq.Status != nil {
+		updateFields["status"] = *updateReq.Status
 	}
 
 	// Update name field when first or last name changes
@@ -167,7 +206,7 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 	// Update user in database
 	_, err = collection.UpdateOne(
 		context.TODO(),
-		bson.M{"_id": user.ID},
+		bson.M{"_id": targetUserID},
 		bson.M{"$set": updateFields},
 	)
 	if err != nil {
@@ -176,7 +215,7 @@ func UpdateUserProfile(request events.APIGatewayProxyRequest) (events.APIGateway
 
 	// Fetch updated user
 	var updatedUser models.User
-	err = collection.FindOne(context.TODO(), bson.M{"_id": user.ID}).Decode(&updatedUser)
+	err = collection.FindOne(context.TODO(), bson.M{"_id": targetUserID}).Decode(&updatedUser)
 	if err != nil {
 		return response.SimpleErrorWithDefault(500, "Failed to fetch updated user"), nil
 	}
@@ -210,8 +249,20 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 		return response.SimpleErrorWithDefault(401, "Invalid user claims"), nil
 	}
 
-	// Get user ID from path parameters
-	userID := request.PathParameters["id"]
+	// Get user ID from path
+	// Path format: /user-management/{userId} or /.netlify/functions/user-management/{userId}
+	var userID string
+	if len(request.PathParameters) > 0 && request.PathParameters["id"] != "" {
+		userID = request.PathParameters["id"]
+	} else {
+		// Extract from path manually
+		parts := strings.Split(strings.Trim(request.Path, "/"), "/")
+		if len(parts) < 2 {
+			return response.SimpleErrorWithDefault(400, "User ID is required"), nil
+		}
+		userID = parts[len(parts)-1]
+	}
+
 	if userID == "" {
 		return response.SimpleErrorWithDefault(400, "User ID is required"), nil
 	}
@@ -239,14 +290,9 @@ func DeleteUser(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRe
 
 	// Instead of hard delete, we'll soft delete by setting status to suspended
 	// This preserves content relationships and audit trail
-	_, err = collection.UpdateOne(
+	_, err = collection.DeleteOne(
 		context.TODO(),
 		bson.M{"_id": objectID},
-		bson.M{"$set": bson.M{
-			"status":    models.UserStatusSuspended,
-			"isActive":  false,
-			"updatedAt": time.Now(),
-		}},
 	)
 	if err != nil {
 		return response.SimpleErrorWithDefault(500, "Failed to delete user"), nil
