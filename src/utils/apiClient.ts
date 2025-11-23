@@ -64,7 +64,7 @@ export const publicApi = {
   getStories: (status?: string) =>
     apiClient.get(status ? `/stories?status=${status}` : "/stories"),
   getStoryById: (id: string) => apiClient.get(`/stories?id=${id}`),
-  getStoryBySlug: (slug: string) => apiClient.get(`/stories/${slug}`),
+  getStoryBySlug: (slug: string) => apiClient.get(`/stories?slug=${slug}`),
 
   // Quiz (public viewing)
   getQuizByStoryId: (storyId: string) =>

@@ -28,8 +28,11 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		storyID = id
 	}
 
-	// Check for slug in path parameters
+	// Check for slug in query parameters
 	slug := ""
+	if s, exists := req.QueryStringParameters["slug"]; exists && s != "" {
+		slug = s
+	}
 
 	// Try different path parameter keys
 	if s, exists := req.PathParameters["proxy"]; exists && s != "" {
