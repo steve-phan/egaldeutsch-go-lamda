@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "gatsby";
 import { Badge, Button, DropdownMenu, DropdownMenuItem } from "../ui";
 import {
@@ -15,40 +16,15 @@ import {
   Sparkles,
 } from "lucide-react";
 import NotificationBell from "../NotificationBell";
+import { getRoleBadgeColor } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface DesktopNavigationProps {
-  isAuthenticated: boolean;
-  user: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
-  } | null;
-  isCreatorOrAdmin: boolean;
-  isReviewerOrAdmin: boolean;
-  logout: () => void;
-}
+export const DekstopNavigation = () => {
+  const { isAuthenticated, user, logout } = useAuth();
 
-export const DekstopNavigation = ({
-  isAuthenticated,
-  user,
-  isCreatorOrAdmin,
-  isReviewerOrAdmin,
-  logout,
-}: DesktopNavigationProps) => {
-  // Get role badge color
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-red-500/10 text-red-600 border-red-500/20";
-      case "reviewer":
-        return "bg-purple-500/10 text-purple-600 border-purple-500/20";
-      case "creator":
-        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
-    }
-  };
+  const isCreatorOrAdmin = user?.role === "creator" || user?.role === "admin";
+  const isReviewerOrAdmin = user?.role === "reviewer" || user?.role === "admin";
+
   return (
     <nav className="hidden lg:flex items-center space-x-1">
       {/* Public Links */}
