@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "gatsby";
-import { useAuth } from "../contexts/AuthContext";
 import { DekstopNavigation } from "./atoms/DesktopNavigation";
 import { MobileNavigationDrawer } from "./atoms/MobileNavigationDrawer";
 import { Menu } from "lucide-react";
 
 const Header: React.FC = () => {
-  const { logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -23,25 +21,11 @@ const Header: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Get role badge color
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-red-500/10 text-red-600 border-red-500/20";
-      case "reviewer":
-        return "bg-purple-500/10 text-purple-600 border-purple-500/20";
-      case "creator":
-        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
-    }
-  };
-
   return (
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-background/80 backdrop-blur-lg shadow-lg border-b border-border/50"
+          ? "bg-background/80  border-b border-border/50"
           : "bg-background border-b border-border"
       }`}
     >
