@@ -9,23 +9,18 @@ interface StoryPageProps {
   params: {
     slug: string;
   };
-  serverData?: {
-    story: Story | null;
-    error: string | null;
-  };
 }
 
-const StoryPage: React.FC<StoryPageProps> = ({ params, serverData }) => {
-  const [story, setStory] = useState<Story | null>(serverData?.story || null);
-  const [error, setError] = useState<string | null>(serverData?.error || null);
-  const [loading, setLoading] = useState(!serverData);
+const StoryPage: React.FC<StoryPageProps> = ({ params }) => {
+  const [story, setStory] = useState<Story | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch if we don't have serverData (client-side navigation or dev mode)
-    if (!serverData && params.slug) {
+    if (params.slug) {
       loadStory(params.slug);
     }
-  }, [params.slug, serverData]);
+  }, [params.slug]);
 
   const loadStory = async (slug: string) => {
     try {
@@ -199,53 +194,3 @@ const StoryPage: React.FC<StoryPageProps> = ({ params, serverData }) => {
 };
 
 export default StoryPage;
-
-// Server-side data fetching for SEO (only works in production build)
-export async function getServerData({ params }: { params: { slug: string } }) {
-  try {
-    const response = await publicApi.getStoryBySlug(params.slug);
-      
-    if (response.data.success && response.data.data) {
-      return {
-        props: {
-          story: response.data.data,
-          error: null,
-        },
-      };
-    }
-    
-    return {
-      props: {
-        story: null,
-        error: response.data.error || "Story not found",
-      },
-    };
-  } catch (err: any) {
-    console.error("Error fetching story on server:", err);
-    return {
-      props: {
-        story: null,
-        error: err.response?.data?.error || "Failed to load story",
-      },
-    };
-  }
-}
-
-// SEO Head export
-export function Head({ serverData }: { serverData?: { story: Story | null } }) {
-  const story = serverData?.story;
-  
-  if (!story) {
-    return <title>Story Not Found | Egal Deutsch</title>;
-  }
-
-  return (
-    <>
-      <title>{story.title} | Egal Deutsch</title>
-      <meta name="description" content={story.summary || story.content?.substring(0, 160)} />
-      <meta property="og:title" content={story.title} />
-      <meta property="og:description" content={story.summary || story.content?.substring(0, 160)} />
-      <meta property="og:type" content="article" />
-    </>
-  );
-}
